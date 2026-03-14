@@ -1,0 +1,4 @@
+{"ticket": "My invoice was double charged this month.", "label": "billing"}
+{"ticket": "The API started returning 500 errors after deployment.", "label": "technical"}
+{"ticket": "Someone is spamming our community forum with scams.", "label": "abuse"}
+{"ticket": "Can I get enterprise pricing for 500 seats?", "label": "sales"}

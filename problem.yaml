@@ -1,0 +1,25 @@
+name: gpt-pretraining
+description: >-
+  Optimize the bundled GPT pretraining script for the lowest validation bits per
+  byte (val_bpb) under a fixed five-minute training budget. Agents may change
+  model architecture, optimizer, hyperparameters, and training logic inside the
+  mutable state file.
+mutable:
+  - state/train.py
+readonly:
+  - context/prepare.py
+  - README.md
+  - leaderboard.md
+  - strategies/conservative.md
+  - strategies/radical.md
+  - strategies/specialist.md
+  - strategies/crossover.md
+score:
+  direction: minimize
+  name: val_bpb
+  description: Validation bits per byte on the held-out shard
+  bounded: false
+constraints:
+  - Training must complete within the fixed five-minute time budget
+  - Only packages declared in pyproject.toml are available
+  - Only files listed under mutable may be modified
