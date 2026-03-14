@@ -113,7 +113,39 @@ evaluator/                — GITIGNORED (private scoring)
   evaluate.py             — serial evaluation loop (polls for branches)
   server.py               — webhook-driven web evaluator (scores PRs)
   history.db              — SQLite history (created on first run)
+test_problems/            — toy problems for testing the framework
+  activate.sh             — switch the repo to a test problem
+  rastrigin/              — minimize a 10-D function (~170 → 0)
+  tsp/                    — shortest tour of 20 cities (~1914 → ~680)
+  packing/                — pack 12 rectangles (13250 → ~6975)
 ```
+
+## Test problems
+
+Three toy problems are included for testing the framework without a GPU. They score instantly and exercise the full agent/evaluator loop.
+
+```bash
+# Activate one (copies files into place)
+bash test_problems/activate.sh rastrigin   # or: tsp, packing
+
+# Score immediately — no setup, no GPU
+bash evaluator/score.sh
+
+# Run the evaluator
+python evaluator/evaluate.py --baseline-only
+python evaluator/evaluate.py
+
+# Restore the real problem
+git checkout -- problem.yaml agent_instructions.md state/ context/
+```
+
+| Problem | What | Starting score | Optimum |
+|---------|------|---------------|---------|
+| `rastrigin` | Minimize a 10-D multimodal function | ~169.7 | 0.0 |
+| `tsp` | Shortest tour of 20 cities | ~1914 | ~680 |
+| `packing` | Pack 12 rectangles into smallest box | 13250 | ~6975 |
+
+See [`test_problems/README.md`](test_problems/README.md) for details.
 
 ## Design
 

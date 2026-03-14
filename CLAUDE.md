@@ -17,11 +17,16 @@ autoanything/
 │   └── train.py             # MUTABLE — the only file agents modify
 ├── context/
 │   └── prepare.py           # READ-ONLY — constants, data loading, evaluation
-└── evaluator/               # GITIGNORED — private scoring code + history DB
-    ├── score.sh              # Runs training, extracts metrics as JSON
-    ├── evaluate.py           # Serial evaluation loop (poll, score, merge/discard)
-    ├── server.py             # Webhook-driven web evaluator (PR-based workflow)
-    └── history.db            # SQLite evaluation history (created on first run)
+├── evaluator/               # GITIGNORED — private scoring code + history DB
+│   ├── score.sh              # Runs training, extracts metrics as JSON
+│   ├── evaluate.py           # Serial evaluation loop (poll, score, merge/discard)
+│   ├── server.py             # Webhook-driven web evaluator (PR-based workflow)
+│   └── history.db            # SQLite evaluation history (created on first run)
+└── test_problems/           # Toy problems for framework testing (no GPU needed)
+    ├── activate.sh           # Switch repo to a test problem
+    ├── rastrigin/            # 10-D function minimization (score: ~170 → 0)
+    ├── tsp/                  # Traveling salesman, 20 cities (score: ~1914 → ~680)
+    └── packing/              # Rectangle packing, 12 rects (score: 13250 → ~6975)
 ```
 
 ## Commands
@@ -40,6 +45,12 @@ python evaluator/evaluate.py --baseline-only  # just establish the baseline scor
 python evaluator/evaluate.py --push        # push leaderboard updates to origin
 python evaluator/server.py                 # start the webhook-driven web evaluator
 python evaluator/server.py --push          # web evaluator with auto-push
+
+# Test problems (no GPU needed, instant scoring — use for framework development)
+bash test_problems/activate.sh rastrigin   # activate a test problem (also: tsp, packing)
+bash evaluator/score.sh                    # verify scoring works
+python evaluator/evaluate.py --baseline-only  # establish baseline
+git checkout -- problem.yaml agent_instructions.md state/ context/  # restore GPT problem
 ```
 
 ## Architecture
@@ -80,3 +91,17 @@ Key model details in `state/train.py`:
 - Requires NVIDIA GPU with CUDA (Flash Attention 3; uses Hopper-specific kernel on H100)
 - Fast-fail: training aborts if loss is NaN or >100
 - Simplicity criterion: prefer simpler code at equal performance
+
+## Test Problems
+
+Three toy optimization problems live in `test_problems/` for testing the framework without a GPU. Each scores instantly (<1ms), requires no dependencies, and exercises the full evaluator loop.
+
+| Problem | Description | Starting → Optimum |
+|---------|-------------|-------------------|
+| `rastrigin` | Minimize 10-D Rastrigin function (many local minima) | ~169.7 → 0.0 |
+| `tsp` | Shortest tour of 20 fixed cities | ~1914 → ~680 |
+| `packing` | Pack 12 rectangles into smallest bounding box | 13250 → ~6975 |
+
+Activate with `bash test_problems/activate.sh <name>`. Restore with `git checkout`. See `test_problems/README.md` for full details.
+
+The evaluator (`evaluate.py`, `server.py`) is problem-agnostic — it reads the score metric name from `problem.yaml` and delegates scoring to `score.sh`.
