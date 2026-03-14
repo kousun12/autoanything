@@ -177,7 +177,7 @@ def render_score_script(score_command: str, score_regex: str) -> str:
           STATUS=$?
         fi
 
-        python - "$LOG_FILE" "$RESULT_FILE" "$STATUS" <<'PY'
+        python3 - "$LOG_FILE" "$RESULT_FILE" "$STATUS" <<'PY'
         import json
         import pathlib
         import re
@@ -243,7 +243,9 @@ def render_evaluate_loop(
         SCRIPT_DIR="$(cd "$(dirname "${{BASH_SOURCE[0]}}")" && pwd)"
         REPO_ROOT="{repo_root.resolve()}"
 
-        exec uv run python -m autoanything internal-evaluate \\
+        export PYTHONPATH="$REPO_ROOT/src${{PYTHONPATH:+:$PYTHONPATH}}"
+
+        exec python3 -m autoanything internal-evaluate \\
           --repo-root "$REPO_ROOT" \\
           --base-branch "{base_branch}" \\
           --proposal-prefix "{proposal_prefix}" \\

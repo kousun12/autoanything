@@ -110,7 +110,7 @@ class AutoAnythingEvaluatorIntegrationTests(unittest.TestCase):
                 """#!/usr/bin/env bash
 set -euo pipefail
 WORKTREE="${1:?usage: score.sh <worktree>}"
-python - "$WORKTREE" <<'PY'
+python3 - "$WORKTREE" <<'PY'
 import json
 import pathlib
 import sys
