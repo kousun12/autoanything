@@ -70,6 +70,10 @@ the scoring logic private. The workflow expects a private evaluator repo or priv
 - post a PR comment
 - merge or close based on the result
 
+If `AUTOANYTHING_EVALUATOR_REPOSITORY` and `AUTOANYTHING_EVALUATOR_TOKEN` are not configured, the
+workflow exits successfully with a notice instead of failing. That keeps forks and freshly scaffolded
+repos green until the private evaluator is wired up.
+
 The key public requirement is serial evaluation:
 
 ```yaml
