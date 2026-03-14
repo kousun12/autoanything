@@ -24,10 +24,8 @@ class EvaluatorFlowTests(unittest.TestCase):
             (repo / "state").mkdir()
             (repo / "context").mkdir()
             (repo / "history").mkdir()
-            (repo / "state" / "value.txt").write_text("10
-")
-            (repo / "context" / "notes.txt").write_text("read only
-")
+            (repo / "state" / "value.txt").write_text("10\n")
+            (repo / "context" / "notes.txt").write_text("read only\n")
             (repo / "score_candidate.py").write_text(
                 "from pathlib import Path\n"
                 "value = float((Path('state') / 'value.txt').read_text().strip())\n"
@@ -58,14 +56,12 @@ class EvaluatorFlowTests(unittest.TestCase):
             self.git(repo, "commit", "-m", "baseline")
 
             self.git(repo, "checkout", "-b", "proposals/alice/better")
-            (repo / "state" / "value.txt").write_text("8
-")
+            (repo / "state" / "value.txt").write_text("8\n")
             self.git(repo, "commit", "-am", "make score better")
             self.git(repo, "checkout", "master")
 
             self.git(repo, "checkout", "-b", "proposals/bob/worse")
-            (repo / "state" / "value.txt").write_text("12
-")
+            (repo / "state" / "value.txt").write_text("12\n")
             self.git(repo, "commit", "-am", "make score worse")
             self.git(repo, "checkout", "master")
 
