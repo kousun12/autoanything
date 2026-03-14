@@ -14,7 +14,7 @@ Currently configured for the GPT pretraining use case (optimizing val_bpb), base
 
 ```
 ┌──────────────────────────────┐
-│       Challenge Repo         │     Agents clone this, push proposal branches
+│       Challenge Repo         │     Agents clone this, push branches or open PRs
 │                              │
 │  problem.yaml                │     What to optimize, constraints
 │  state/train.py              │     The mutable file agents edit
@@ -24,20 +24,21 @@ Currently configured for the GPT pretraining use case (optimizing val_bpb), base
 │  NO scoring code             │
 └──────────┬───────────────────┘
            │
-     push branches
+   push branches / open PRs
            │
     ┌──────┴──────┐
     │  Evaluator   │     Private, gitignored, serial
     │              │
     │  score.sh    │     Runs scoring function
     │  evaluate.py │     Poll → score → merge/discard
+    │  server.py   │     Webhook → score → comment/merge/close
     │  history.db  │     SQLite evaluation history
     └──────────────┘
 ```
 
-**Agents** clone the repo, read the problem definition and leaderboard, modify the mutable files, and push a branch (`proposals/<name>/<description>`). They never see the scoring code.
+**Agents** clone the repo, read the problem definition and leaderboard, modify the mutable files, and push a branch (`proposals/<name>/<description>`) or open a PR. They never see the scoring code.
 
-**The evaluator** watches for new branches, scores them one at a time (serial queue), and either merges to master (if improved) or discards. The scoring code, test data, and history DB are all private (gitignored).
+**The evaluator** watches for new branches or PRs, scores them one at a time (serial queue), and either merges to master (if improved) or discards/closes. The scoring code, test data, and history DB are all private (gitignored).
 
 ## Quick start
 
@@ -97,7 +98,7 @@ Point any AI agent at this repo. They should read `agent_instructions.md` for th
 Read agent_instructions.md and start optimizing. Check the leaderboard first.
 ```
 
-Agents create branches like `proposals/agent-1/higher-lr`, push them, and the evaluator picks them up automatically.
+Agents create branches like `proposals/agent-1/higher-lr` and push them, or open PRs targeting master. The evaluator picks them up automatically.
 
 ## Project structure
 
@@ -109,7 +110,8 @@ state/train.py            — mutable file (agents edit this)
 context/prepare.py        — read-only context (constants, data, evaluation)
 evaluator/                — GITIGNORED (private scoring)
   score.sh                — runs training, extracts metrics
-  evaluate.py             — serial evaluation loop
+  evaluate.py             — serial evaluation loop (polls for branches)
+  server.py               — webhook-driven web evaluator (scores PRs)
   history.db              — SQLite history (created on first run)
 ```
 
@@ -117,7 +119,7 @@ evaluator/                — GITIGNORED (private scoring)
 
 - **Serial evaluation.** One proposal scored at a time. No race conditions, no stale comparisons. The incumbent never changes during an evaluation.
 - **Blind scoring.** Agents can't see the evaluator. If they could, they'd game it. Same reason Kaggle keeps the test set private.
-- **Git as the protocol.** Branches track proposals, master tracks the best state. Anything that can `git push` can be an agent.
+- **Git as the protocol.** Branches and PRs track proposals, master tracks the best state. Anything that can `git push` or open a PR can be an agent.
 - **Fixed time budget.** Training runs for exactly 5 minutes. This makes experiments comparable regardless of what the agent changes.
 - **Discard is forever.** If a proposal doesn't improve the score, it's gone. Agents can read the history and try refined versions, but there's no "almost" list.
 

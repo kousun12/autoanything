@@ -63,10 +63,11 @@ Key model details in `state/train.py`:
 2. Read `problem.yaml`, `context/`, and `leaderboard.md` for context
 3. Modify ONLY `state/train.py`
 4. Commit with a clear message explaining the approach
-5. Push the branch — the evaluator picks it up, scores it, merges if improved
+5. Push the branch or open a PR targeting master — the evaluator scores it and merges if improved
 
 ## Evaluator Design
 
+- **Two modes**: polling (`evaluate.py` watches for branches) or webhook (`server.py` receives PR events)
 - **Serial evaluation**: one proposal at a time, no race conditions
 - **Blind scoring**: agents never see `evaluator/` (gitignored)
 - **SQLite history**: all evaluations recorded in `evaluator/history.db`
