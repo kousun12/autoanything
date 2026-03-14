@@ -1,0 +1,37 @@
+name: Evaluate proposals
+
+on:
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: evaluation
+      cancel-in-progress: false
+    steps:
+      - name: Check out proposal
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Check out private evaluator
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.AUTOANYTHING_EVALUATOR_REPOSITORY }}
+          token: ${{ secrets.AUTOANYTHING_EVALUATOR_TOKEN }}
+          path: _evaluator
+
+      - name: Run private evaluation
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash _evaluator/evaluate_pr.sh

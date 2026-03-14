@@ -1,0 +1,25 @@
+name: prompt-classifier
+description: |
+  Optimize a prompt template for highest held-out classification accuracy on a hidden
+  customer-support routing dataset. Agents may rewrite the instructions, formatting,
+  and few-shot examples in the mutable prompt file, but they may not modify the task
+  schema or the hidden evaluator.
+
+mutable:
+  - state/prompt.md
+
+readonly:
+  - context/task.md
+  - context/few_shot_examples.md
+
+score:
+  direction: maximize
+  name: accuracy
+  description: "Classification accuracy on a hidden held-out dataset"
+  bounded: true
+  bound: 100.0
+
+constraints:
+  - "Only files listed under mutable may be changed"
+  - "The evaluator uses a hidden dataset and hidden scoring prompt"
+  - "Output must be exactly one label from the public schema"
