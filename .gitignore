@@ -18,6 +18,10 @@ AGENTS.md
 
 # Experimental code/artifacts
 dev/
+evaluator/
 
 # Results file
 results.tsv
+
+# Test caches
+.pytest_cache/

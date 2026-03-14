@@ -1,0 +1,25 @@
+name: gpt-pretraining
+description: |
+  Optimize the mutable GPT training script for the lowest validation bits per byte
+  (val_bpb) under a fixed five-minute training budget. Agents may change the model
+  architecture, optimizer, hyperparameters, schedules, and training loop, but only
+  through the mutable files listed below. The evaluation metric remains private and
+  is run by a separate evaluator that agents cannot inspect.
+
+mutable:
+  - state/train.py
+
+readonly:
+  - context/prepare.py
+
+score:
+  direction: minimize
+  name: val_bpb
+  description: "Validation bits per byte on a hidden held-out slice"
+  bounded: false
+
+constraints:
+  - "Training must complete within the fixed five-minute evaluation budget"
+  - "Only packages already declared in pyproject.toml may be used"
+  - "Proposals must only modify files listed in mutable"
+  - "The evaluator and its hidden data are private and are never committed to the repo"
