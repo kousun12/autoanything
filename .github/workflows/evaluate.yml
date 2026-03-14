@@ -18,6 +18,9 @@ jobs:
     concurrency:
       group: autoanything-evaluation
       cancel-in-progress: false
+    env:
+      PRIVATE_EVALUATOR_REPO: ${{ vars.AUTOANYTHING_EVALUATOR_REPO }}
+      PRIVATE_EVALUATOR_TOKEN: ${{ secrets.EVALUATOR_TOKEN }}
     steps:
       - name: Check out proposal
         uses: actions/checkout@v4
@@ -33,20 +36,26 @@ jobs:
       - name: Install public dependencies
         run: python -m pip install -e .
 
+      - name: Run public validation
+        run: python -m unittest discover -s tests -v
+
       - name: Fetch private evaluator
+        if: ${{ env.PRIVATE_EVALUATOR_REPO != '' && env.PRIVATE_EVALUATOR_TOKEN != '' }}
         uses: actions/checkout@v4
         with:
-          repository: ${{ vars.AUTOANYTHING_EVALUATOR_REPO }}
-          token: ${{ secrets.EVALUATOR_TOKEN }}
+          repository: ${{ env.PRIVATE_EVALUATOR_REPO }}
+          token: ${{ env.PRIVATE_EVALUATOR_TOKEN }}
           path: _evaluator
 
       - name: Run private evaluation
+        if: ${{ env.PRIVATE_EVALUATOR_REPO != '' && env.PRIVATE_EVALUATOR_TOKEN != '' }}
         env:
           AUTOANYTHING_BASE_BRANCH: master
           AUTOANYTHING_PR_NUMBER: ${{ github.event.pull_request.number || '' }}
         run: bash _evaluator/score.sh
 
       - name: Report result and merge or close
+        if: ${{ env.PRIVATE_EVALUATOR_REPO != '' && env.PRIVATE_EVALUATOR_TOKEN != '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python _evaluator/reporter.py
