@@ -337,6 +337,34 @@ The `scoring/score.sh` convention is new, but the framework should also look for
 
 ---
 
+## Test Suite (scaffolded)
+
+The test suite is already scaffolded in `tests/` — 96 tests across 9 files. All tests import from the planned `src/autoanything/` package and will fail until the modules exist. They define the expected API surface and behavior.
+
+| File | Tests | Covers |
+|------|-------|--------|
+| `test_problem.py` | 16 | YAML parsing, defaults, validation errors, `mutable:` → `state:` backward compat |
+| `test_cli.py` | 20 | `init`, `validate`, `score`, `history`, `leaderboard` commands via CliRunner |
+| `test_scoring.py` | 13 | `parse_score_output`, `run_score` (subprocess), timeout, `is_better` |
+| `test_history.py` | 11 | `init_db`, incumbent CRUD, `record_evaluation`, `is_evaluated` |
+| `test_server.py` | 11 | `/health`, `/webhook` routing, signature verification, PR file validation |
+| `test_git.py` | 8 | `git()` helper, `get_proposal_branches` with configurable pattern, commit ops |
+| `test_leaderboard.py` | 6 | `export_leaderboard` ordering for minimize/maximize, crash display |
+| `test_evaluator.py` | 6 | `establish_baseline`, accept/reject/crash logic (mocked git+scoring) |
+| `test_integration.py` | 5 | End-to-end init→validate→score, existing problem YAML compat, CLI entry point |
+
+Key conventions the tests lock in:
+
+- `load_problem(path)` returns a `ProblemConfig` with nested `.score` and `.git` objects
+- `run_score(script, score_name, timeout, cwd)` — parameterized, no global state
+- `git(..., cwd=)` and `get_proposal_branches(cwd=, pattern=)` — cwd and pattern are explicit args
+- `create_app(problem_dir=, webhook_secret=)` — server is a factory, not a module-level singleton
+- `export_leaderboard(conn, output_path, direction=)` — takes a connection and output path
+- `validate_pr_files(modified=, mutable_files=)` — pure function, no `gh` subprocess call
+- Backward compat: `mutable:` in YAML treated as alias for `state:`
+
+---
+
 ## Implementation Plan
 
 ### Phase 1: Proper Configuration (small, no structural changes)
