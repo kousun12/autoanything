@@ -1,0 +1,17 @@
+name: fibonacci
+description: >
+  Optimize a Fibonacci implementation for speed. The starting code uses
+  naive recursion, which is exponentially slow. Modify state/fib.py to
+  make fib(n) as fast as possible while keeping it correct. The scoring
+  function validates correctness then benchmarks fib(35) — lower time is better.
+
+score:
+  direction: minimize
+  description: "Median wall-clock time for fib(35) in seconds — lower is better"
+  timeout: 60
+
+constraints:
+  - "fib(n) must return the correct Fibonacci number for any non-negative n"
+  - "The function signature must remain: def fib(n) -> int"
+  - "No hardcoding return values for specific inputs"
+  - "No reading from the scoring directory"

@@ -25,6 +25,7 @@ autoanything/
 │   ├── rastrigin/            # 10-D function minimization (score: ~170 → 0)
 │   ├── tsp/                  # Traveling salesman, 20 cities (score: ~1914 → ~680)
 │   ├── packing/              # Rectangle packing, 12 rects (score: 13250 → ~6975)
+│   ├── fib/                  # Fibonacci optimization (score: ~1.0s → ~0.000001s)
 │   └── gpt/                  # GPT pretraining, val_bpb (~1.15 → ?, requires GPU)
 └── tests/                   # Test suite
 ```
@@ -33,6 +34,11 @@ autoanything/
 
 ```bash
 uv sync                                    # install dependencies
+
+# Try an example problem (quick demo with built-in agent)
+autoanything try rastrigin                 # set up + run demo agent + plot
+autoanything try fib --claude              # use Claude as the agent
+autoanything try tsp -a "./my_agent.sh"    # use a custom agent
 
 # Local optimization loop (run from a problem directory)
 autoanything run -a "./my_agent.sh"        # run agent in a loop, score locally
@@ -99,6 +105,7 @@ The evaluator is problem-agnostic — it reads the score metric name from `probl
 | `rastrigin` | Minimize 10-D Rastrigin function (many local minima) | ~169.7 → 0.0 | None |
 | `tsp` | Shortest tour of 20 fixed cities | ~1914 → ~680 | None |
 | `packing` | Pack 12 rectangles into smallest bounding box | 13250 → ~6975 | None |
+| `fib` | Optimize Fibonacci implementation for speed | ~1.0s → ~0.000001s | None |
 | `gpt` | Optimize GPT training script (val_bpb) | ~1.15 → ? | NVIDIA GPU |
 
-The first three score instantly (<1ms) and need no GPU — use them for framework development. The `gpt` problem is the real-world use case (~5 min scoring, GPU required).
+The first four score instantly or near-instantly and need no GPU — use them for framework development. The `gpt` problem is the real-world use case (~5 min scoring, GPU required).

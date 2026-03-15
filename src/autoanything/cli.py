@@ -378,22 +378,44 @@ def run(problem_dir, agent, iterations, max_crashes, db):
     )
 
 
+_CLAUDE_DEFAULTS = {
+    "rastrigin": 10,
+    "tsp": 10,
+    "packing": 10,
+    "fib": 3,
+}
+
+_DEMO_DEFAULTS = {
+    "rastrigin": 20,
+    "tsp": 20,
+    "packing": 20,
+    "fib": 5,
+}
+
+
 @main.command(name="try")
-@click.argument("problem", type=click.Choice(["rastrigin", "tsp", "packing"]))
+@click.argument("problem", type=click.Choice(["rastrigin", "tsp", "packing", "fib"]))
 @click.option("--dir", "target_dir", default=None,
               help="Target directory (default: /tmp/<problem>).")
-@click.option("-n", "--iterations", default=20, help="Number of iterations (default: 20).")
-def try_problem(problem, target_dir, iterations):
+@click.option("-n", "--iterations", default=None, type=int,
+              help="Number of iterations (auto-selected if omitted).")
+@click.option("-a", "--agent", "agent_override", default=None,
+              help="Custom agent command.")
+@click.option("--claude", "use_claude", is_flag=True,
+              help="Use Claude as the agent.")
+def try_problem(problem, target_dir, iterations, agent_override, use_claude):
     """Try an example problem with a built-in demo agent.
 
-    Sets up a fresh copy of the example, runs a simple random agent,
+    Sets up a fresh copy of the example, runs optimization iterations,
     generates a progress chart, and opens it.
 
     Examples:
 
         autoanything try rastrigin
 
-        autoanything try tsp --dir ./my-tsp -n 50
+        autoanything try fib --claude
+
+        autoanything try tsp -a "python my_agent.py" -n 10
     """
     import shutil
     import platform
@@ -491,13 +513,68 @@ current[i] = (x, y, rotated)
 with open("state/packing.py", "w") as f:
     f.write("placements = " + repr(current) + "\\n")
 ''',
+        "fib": '''\
+# Try memoization, then iterative
+code = open("state/fib.py").read()
+
+if "_cache" not in code and "a, b" not in code:
+    # First optimization: memoization
+    lines = [
+        "def fib(n, _cache={0: 0, 1: 1}):",
+        "    if n in _cache:",
+        "        return _cache[n]",
+        "    _cache[n] = fib(n - 1, _cache) + fib(n - 2, _cache)",
+        "    return _cache[n]",
+    ]
+elif "_cache" in code:
+    # Second optimization: iterative
+    lines = [
+        "def fib(n):",
+        "    if n <= 1:",
+        "        return n",
+        "    a, b = 0, 1",
+        "    for _ in range(n):",
+        "        a, b = b, a + b",
+        "    return a",
+    ]
+else:
+    lines = None
+
+if lines:
+    with open("state/fib.py", "w") as f:
+        f.write("\\n".join(lines) + "\\n")
+''',
     }
 
     with open(agent_script, "w") as f:
         f.write(agents[problem])
 
+    # Determine agent command
+    if agent_override:
+        agent_command = agent_override
+        agent_label = agent_override.split()[0]
+        if iterations is None:
+            iterations = _DEMO_DEFAULTS[problem]
+    elif use_claude:
+        agent_command = (
+            "claude -p 'You are optimizing a problem. "
+            "Read problem.yaml, context/, and agent_instructions.md to understand the task. "
+            "Check leaderboard.md and history.md if they exist for context on past attempts. "
+            "Modify only files in state/. "
+            "Be creative and try a different approach than previous attempts.' "
+            "--dangerously-skip-permissions"
+        )
+        agent_label = "claude"
+        if iterations is None:
+            iterations = _CLAUDE_DEFAULTS[problem]
+    else:
+        agent_command = f"python {agent_script}"
+        agent_label = "demo agent"
+        if iterations is None:
+            iterations = _DEMO_DEFAULTS[problem]
+
     click.echo(f"Set up {problem} in {target_dir}")
-    click.echo(f"Running {iterations} iterations with demo agent...\n")
+    click.echo(f"Running {iterations} iterations with {agent_label}...\n")
 
     # Run the optimization loop
     try:
@@ -513,7 +590,7 @@ with open("state/packing.py", "w") as f:
         problem_dir=target_dir,
         config=config,
         db_path=db_path,
-        agent_command=f"python {agent_script}",
+        agent_command=agent_command,
         max_iterations=iterations,
     )
 

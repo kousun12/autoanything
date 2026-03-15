@@ -17,8 +17,6 @@ The insight wasn't the ML part. It was the loop: propose a change, score it agai
 ## Install
 
 ```bash
-pip install autoanything
-# or
 uv tool install autoanything
 ```
 
@@ -31,6 +29,15 @@ uv sync
 ```
 
 ## Quick start
+
+Try an example problem in one command:
+
+```bash
+autoanything try fib              # built-in demo agent, generates progress chart
+autoanything try rastrigin --claude  # use Claude as the agent
+```
+
+Or create your own problem:
 
 ```bash
 # Create a new problem
@@ -120,6 +127,8 @@ The `scoring/` directory is never committed — it exists only on the evaluation
 
 | Command | Description |
 |---------|-------------|
+| `autoanything try <problem>` | Try an example problem (demo agent, generates chart) |
+| `autoanything try <problem> --claude` | Try an example with Claude as the agent |
 | `autoanything init <name>` | Scaffold a new problem directory |
 | `autoanything validate` | Check that the problem directory is well-formed |
 | `autoanything score` | Run `scoring/score.py` once and print the result |
@@ -191,9 +200,10 @@ The [`examples/`](examples/) directory contains four reference problems showing 
 | `rastrigin` | Minimize 10-D Rastrigin function | ~169.7 → 0.0 | None |
 | `tsp` | Shortest tour of 20 cities | ~1914 → ~680 | None |
 | `packing` | Pack 12 rectangles into smallest box | 13250 → ~6975 | None |
+| `fib` | Optimize Fibonacci for speed | ~1.0s → ~0.000001s | None |
 | `gpt` | Optimize GPT training (val_bpb) | ~1.15 → ? | NVIDIA GPU |
 
-The first three score instantly (<1ms) and need no GPU.
+The first four score instantly or near-instantly and need no GPU.
 
 For runnable problems with evaluator support and simulated test runs, see [derby-examples](https://github.com/kousun12/derby-examples). See [`examples/README.md`](examples/README.md) for details on each problem's structure.
 

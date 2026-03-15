@@ -3,3 +3,10 @@ scoring/
 
 # Evaluator state (history database, logs)
 .autoanything/
+
+# Python bytecode cache
+__pycache__/
+*.pyc
+
+# OS artifacts
+.DS_Store

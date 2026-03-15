@@ -15,8 +15,6 @@ That's it. AutoAnything handles the rest: watching for proposals, scoring them, 
 ## Step 1: Install AutoAnything
 
 ```bash
-pip install autoanything
-# or
 uv tool install autoanything
 ```
 
@@ -38,7 +36,7 @@ my-problem/
 ├── context/                # Read-only background for agents — add files here
 ├── scoring/
 │   └── score.py            # Private scoring function — implement this
-├── .gitignore              # Pre-configured to hide scoring/ and .autoanything/
+├── .gitignore              # Pre-configured to hide scoring/, .autoanything/, __pycache__/
 └── .autoanything/           # Evaluator state (created automatically)
 ```
 
