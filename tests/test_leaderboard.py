@@ -15,14 +15,18 @@ def populated_db(tmp_path):
     """A database with a baseline and several evaluations."""
     db_path = str(tmp_path / "history.db")
     conn = init_db(db_path)
-    record_evaluation(conn, "base1", "master", 100.0, "baseline", "initial baseline", 1.0)
+    record_evaluation(conn, "base1", "master", 100.0, "baseline", "initial baseline", 1.0,
+                      metrics={"distance": 100.0})
     update_incumbent(conn, "base1", 100.0)
-    record_evaluation(conn, "acc1", "proposals/a/improve", 80.0, "accepted", "first improvement", 2.0)
+    record_evaluation(conn, "acc1", "proposals/a/improve", 80.0, "accepted", "first improvement", 2.0,
+                      metrics={"distance": 80.0, "iterations": 5})
     update_incumbent(conn, "acc1", 80.0)
-    record_evaluation(conn, "rej1", "proposals/b/worse", 120.0, "rejected", "made it worse", 1.5)
+    record_evaluation(conn, "rej1", "proposals/b/worse", 120.0, "rejected", "made it worse", 1.5,
+                      metrics={"distance": 120.0})
     record_evaluation(conn, "crash1", "proposals/c/bad", None, "crash", "broke everything", 0.5,
                       error_message="segfault")
-    record_evaluation(conn, "acc2", "proposals/d/better", 50.0, "accepted", "big win", 3.0)
+    record_evaluation(conn, "acc2", "proposals/d/better", 50.0, "accepted", "big win", 3.0,
+                      metrics={"distance": 50.0, "iterations": 12})
     update_incumbent(conn, "acc2", 50.0)
     return conn, tmp_path
 
@@ -61,6 +65,23 @@ class TestExportLeaderboard:
         content = (tmp_path / "leaderboard.md").read_text()
         assert "rejected" not in content
         assert "crash" not in content
+
+    def test_includes_metrics_json(self, populated_db):
+        conn, tmp_path = populated_db
+        out = str(tmp_path / "leaderboard.md")
+        export_leaderboard(conn, out, direction="minimize")
+        content = (tmp_path / "leaderboard.md").read_text()
+        assert "```json" in content
+        assert '"distance"' in content
+
+    def test_section_format(self, populated_db):
+        conn, tmp_path = populated_db
+        out = str(tmp_path / "leaderboard.md")
+        export_leaderboard(conn, out, direction="minimize")
+        content = (tmp_path / "leaderboard.md").read_text()
+        assert "## #1" in content
+        assert "**Branch:**" in content
+        assert "**Date:**" in content
 
 
 class TestExportHistory:
@@ -109,16 +130,26 @@ class TestExportHistory:
         out = str(tmp_path / "history.md")
         export_history(conn, out, limit=3)
         content = (tmp_path / "history.md").read_text()
-        # Should only have 3 data rows (plus header + separator)
-        lines = [l for l in content.strip().split("\n") if l.startswith("|")]
-        assert len(lines) == 5  # header + separator + 3 data rows
+        # Should only have 3 sections (## headings beyond the top-level #)
+        sections = [l for l in content.split("\n") if l.startswith("## ")]
+        assert len(sections) == 3
         conn.close()
+
+    def test_includes_metrics_json(self, populated_db):
+        conn, tmp_path = populated_db
+        out = str(tmp_path / "history.md")
+        export_history(conn, out)
+        content = (tmp_path / "history.md").read_text()
+        assert "```json" in content
+        assert '"distance"' in content
 
     def test_maximize_reverses_order(self, tmp_path):
         db_path = str(tmp_path / "history.db")
         conn = init_db(db_path)
-        record_evaluation(conn, "low", "master", 10.0, "baseline", "baseline", 1.0)
-        record_evaluation(conn, "high", "proposals/a", 90.0, "accepted", "big score", 1.0)
+        record_evaluation(conn, "low", "master", 10.0, "baseline", "baseline", 1.0,
+                          metrics={"score": 10.0})
+        record_evaluation(conn, "high", "proposals/a", 90.0, "accepted", "big score", 1.0,
+                          metrics={"score": 90.0})
 
         out = str(tmp_path / "leaderboard.md")
         export_leaderboard(conn, out, direction="maximize")
