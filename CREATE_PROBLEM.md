@@ -32,7 +32,7 @@ my-problem/
 ├── problem.yaml            # Problem definition — edit this
 ├── agent_instructions.md   # Protocol for agents — generated for you
 ├── state/
-│   └── solution.py         # Mutable file agents will edit — replace with your state
+│   └── solution.py         # Scaffold placeholder — rename or replace with your own files
 ├── context/                # Read-only background for agents — add files here
 ├── scoring/
 │   └── score.py            # Private scoring function — implement this
@@ -46,9 +46,9 @@ A git repo is already initialized.
 
 Edit the three files that matter. Here's a complete, runnable example — a sorting algorithm that agents optimize for speed.
 
-### `state/solution.py` — what agents change
+### `state/` — what agents change
 
-Replace the placeholder with your starting state. This is the file (or files) agents will modify to improve the score.
+Replace the scaffold placeholder with your starting state. The `state/` directory can contain any files — the scoring function decides how to interpret them. The examples use names like `solution.py`, `tour.py`, `fib.py`, etc.
 
 ```python
 def sort(arr):

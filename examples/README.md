@@ -114,8 +114,8 @@ This scaffolds the full directory structure. A problem directory has this layout
 my-problem/
 ├── problem.yaml            # Problem definition + framework config
 ├── agent_instructions.md   # Protocol for agents
-├── state/                  # Mutable files agents edit
-│   └── solution.py
+├── state/                  # Mutable files agents edit (any files; scoring function reads them)
+│   └── ...
 ├── context/                # Read-only background for agents
 ├── scoring/                # GITIGNORED — private scoring code
 │   └── score.py            # Implement score() → dict

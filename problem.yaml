@@ -13,7 +13,7 @@ description: >
   Describe what you're optimizing and how agents should approach it.
 
 mutable:
-  - state/solution.py    # File(s) agents can modify
+  - state/solution.py    # File(s) agents can modify — name files however you like
 
 readonly:
   - context/problem.py   # Read-only context files
