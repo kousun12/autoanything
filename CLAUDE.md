@@ -51,6 +51,12 @@ bash test_problems/activate.sh rastrigin   # activate a test problem (also: tsp,
 bash evaluator/score.sh                    # verify scoring works
 python evaluator/evaluate.py --baseline-only  # establish baseline
 git checkout -- problem.yaml agent_instructions.md state/ context/  # restore GPT problem
+
+# Simulated test run (generates progress chart, doesn't touch working tree)
+python test_problems/run_test.py rastrigin              # run with 15 submissions
+python test_problems/run_test.py tsp -n 20              # more submissions
+python test_problems/run_test.py packing --include-failures  # with crash submissions
+python test_problems/plot_progress.py evaluator/history.db   # chart from real evaluator
 ```
 
 ## Architecture

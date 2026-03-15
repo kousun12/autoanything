@@ -76,6 +76,34 @@ git checkout -- problem.yaml agent_instructions.md state/ context/
 
 **Why it's good for testing:** More structured state (tuples with multiple fields). Has soft constraints (overlaps penalized, not rejected). Tests that agents can work with composite state and multi-objective scoring.
 
+## Simulated Test Runs
+
+`run_test.py` simulates an end-to-end optimization run with fake agent submissions and generates a progress chart. Runs in a temp directory — does not touch the repo working tree.
+
+```bash
+# Run a test (generates test_progress_<problem>.png in current dir)
+python test_problems/run_test.py rastrigin
+python test_problems/run_test.py tsp --submissions 20
+python test_problems/run_test.py packing --include-failures -o chart.png
+```
+
+Options:
+- `-n`, `--submissions` — number of simulated submissions (default: 15)
+- `--include-failures` — include intentionally crashing submissions
+- `-o`, `--output` — output chart path (default: `test_progress_<problem>.png`)
+- `--seed` — random seed for reproducibility (default: 42)
+
+Requires `matplotlib` (`pip install matplotlib`).
+
+### Standalone chart generation
+
+`plot_progress.py` generates a progress chart from any evaluation `history.db` — works with both test runs and real evaluator runs.
+
+```bash
+python test_problems/plot_progress.py evaluator/history.db
+python test_problems/plot_progress.py evaluator/history.db -o chart.png --title "My Run"
+```
+
 ## File Structure
 
 Each test problem mirrors the repo's main structure:
