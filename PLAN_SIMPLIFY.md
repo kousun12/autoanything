@@ -136,10 +136,12 @@ Most problems use `"score"` as their metric key. If the `score()` function retur
 **`init` command:**
 - Remove `--metric` flag (default is `"score"`; users can edit `problem.yaml` if different).
 - Keep `--direction` flag since it's one of the two fundamental inputs — default to `minimize`.
+- Remove `metric` from the `subs` dict — templates no longer use `{{metric}}`.
 - Scaffold `scoring/score.py` instead of `scoring/score.sh`. No `chmod` needed (it's not executed directly).
-- Updated `problem.yaml` template — smaller, no `state:` list.
-- Updated `agent_instructions.md` template — refers to `state/` directory convention.
+- Updated `problem.yaml` template — smaller, no `state:` list, no `{{metric}}`.
+- Updated `agent_instructions.md` template — refers to `state/` directory convention, remove `{{metric}}` (hardcode "score" or just describe the direction).
 - Updated `.gitignore` template — same content, still hides `scoring/` and `.autoanything/`.
+- Update the "Next steps" print output to reference `scoring/score.py` instead of `scoring/score.sh`.
 
 **`validate` command:**
 - Check for `scoring/score.py` existence.
@@ -149,6 +151,9 @@ Most problems use `"score"` as their metric key. If the `score()` function retur
 
 **`score` command:**
 - Use new `run_score(problem_dir, score_name, timeout)` signature. Remove `script_path` construction from `config.score.script`.
+
+**`_resolve_db_path` helper:**
+- Remove the `evaluator/history.db` fallback (lines 43-45). No backward compat needed — always use `.autoanything/history.db`.
 
 ### `src/autoanything/templates/`
 
@@ -304,12 +309,13 @@ Delete `evaluator/` directory.
 - Update `problem_dir` fixture — create `scoring/score.py` instead of `scoring/score.sh`.
 
 **`tests/test_problem.py`:**
-- Remove tests for missing/empty `state:` validation (it's no longer required in YAML).
+- Remove tests for missing/empty `state:` validation (it's no longer required in YAML): `test_missing_state`, `test_empty_state`.
 - Remove `TestMutableField` backward compat tests.
 - Remove `TestScoreFallback` tests for `evaluator/score.sh`.
 - Remove `test_default_script` — no longer a field.
+- Convert `test_missing_score_name` from a validation-error test to a default-value test (verify it defaults to `"score"` when omitted).
 - Add tests for `get_state_files()` discovery.
-- Keep validation tests for `name`, `score.direction`.
+- Keep validation tests for `name`, `score.direction`. Keep `TestMaximizeDirection`.
 
 **`tests/test_scoring.py`:**
 - Add `TestRunScorePy` class testing the new `run_score_py()` function with a `scoring/score.py` file.
@@ -318,9 +324,9 @@ Delete `evaluator/` directory.
 - Remove old `TestRunScore` (bash) tests — no backward compat needed.
 
 **`tests/test_cli.py`:**
-- `TestInit`: update to check for `scoring/score.py` instead of `scoring/score.sh`. Remove `test_custom_metric_and_direction` or update it. Update template rendering tests.
-- `TestValidate`: update expectations for new structure. Check for `scoring/score.py`. Remove executable permission test.
-- `TestScore`: update fixtures to use `scoring/score.py`.
+- `TestInit`: update `test_creates_score_sh` → `test_creates_score_py`. Remove `test_custom_metric_and_direction` (no `--metric` flag) or reduce to direction-only test. Remove `test_templates_render_metric` (no `{{metric}}` in templates). Update `test_prints_next_steps` to expect `score.py`.
+- `TestValidate`: update expectations for new structure. Check for `scoring/score.py`. Remove executable permission check from `test_missing_score_script_warns`. Update `test_missing_state_files_fails` to test for empty/missing `state/` directory instead.
+- `TestScore`: update fixtures to use `scoring/score.py`. Update `test_missing_score_script_fails` to check for `scoring/score.py`.
 
 **`tests/test_integration.py`:**
 - `TestInitToScore`: update to write a `scoring/score.py` instead of `scoring/score.sh`.

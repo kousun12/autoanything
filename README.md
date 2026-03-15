@@ -1,10 +1,10 @@
 # AutoAnything
 
-**AutoAnything** is a framework where you define what to optimize and how to score it, then unleash a swarm of AI agents to hill-climb relentlessly. You come back to a leaderboard of experiments and a measurably better system.
+This project started from Andrej Karpathy's [autoresearch](https://github.com/karpathy/autoresearch) — a single AI agent in a loop, optimizing a GPT training script against validation bits-per-byte on one GPU. The agent would modify `train.py`, run training for five minutes, check the score, and keep the change if it improved. Simple evolutionary search powered by an LLM instead of random mutations.
 
-The concept: any optimization problem with a black-box scoring function. Agents propose changes by pushing git branches. A private evaluator scores them serially and merges improvements. Agents never see the scoring code — just the leaderboard.
+The insight wasn't the ML part. It was the loop: propose a change, score it against an objective function, keep it if it's better, throw it away if it's not. That loop works for anything with a number you can measure. The code changes are the mutations, the scoring function is the fitness landscape, and the LLM is a mutation operator that actually understands what it's changing.
 
-Think of it as **Kaggle for code**: the leaderboard is public, the test set is private, and submissions are git branches.
+**AutoAnything** generalizes that loop. The mutable state can be any file. The scoring function can be any program that outputs a number. And agents can be anything that can `git push` — Claude Code, Codex, Cursor, a human with vim, a shell script. You define the scoring function and a direction. AutoAnything is just the plumbing.
 
 | GPT Training (val BPB) | Rastrigin Function (10-D) |
 |:---:|:---:|
@@ -48,9 +48,17 @@ autoanything validate
 # Run scoring once as a sanity check
 autoanything score
 
-# Establish baseline and start the evaluator
-autoanything evaluate --baseline-only
-autoanything evaluate
+# Run a local optimization loop — single machine, one agent
+autoanything run -a "claude -p 'read agent_instructions.md and improve the solution'"
+```
+
+The `run` command handles everything: it runs your agent, scores the result, keeps improvements, updates the leaderboard, and loops. The scoring directory is hidden from the agent during execution. This is the simplest way to use AutoAnything.
+
+To scale up to multiple agents submitting concurrently, use the evaluator:
+
+```bash
+autoanything evaluate --baseline-only   # establish baseline
+autoanything evaluate                   # start evaluation loop (watches for proposal branches)
 ```
 
 ## How it works
@@ -115,6 +123,7 @@ The `scoring/` directory is never committed — it exists only on the evaluation
 | `autoanything init <name>` | Scaffold a new problem directory |
 | `autoanything validate` | Check that the problem directory is well-formed |
 | `autoanything score` | Run `scoring/score.sh` once and print the result |
+| `autoanything run -a "<cmd>"` | Run the local optimization loop with an agent command |
 | `autoanything evaluate` | Start the polling evaluator (watches for proposal branches) |
 | `autoanything evaluate --baseline-only` | Establish baseline score and exit |
 | `autoanything serve` | Start the webhook server (receives PR events) |
@@ -125,6 +134,14 @@ The `scoring/` directory is never committed — it exists only on the evaluation
 All commands operate on the current directory by default (overridable with `--dir`).
 
 ### Evaluator modes
+
+**Local loop** — single machine, one agent, fully automated:
+
+```bash
+autoanything run -a "./my_agent.sh"                           # run until stopped
+autoanything run -a "python optimize.py" -n 50                # limit to 50 iterations
+autoanything run -a "claude -p 'improve the solution'" -n 10  # use any command as the agent
+```
 
 **Polling** — watches for proposal branches matching `proposals/*`:
 
@@ -209,16 +226,37 @@ score:
   direction: minimize
 ```
 
-## Design
+## Design principles
 
-- **Serial evaluation.** One proposal scored at a time. No race conditions, no stale comparisons.
-- **Blind scoring.** Agents can't see the scoring code. Same reason Kaggle keeps the test set private.
-- **Git as the protocol.** Branches and PRs track proposals, main tracks the best state. Anything that can `git push` or open a PR can be an agent.
-- **Discard is forever.** If a proposal doesn't improve the score, it's gone.
+### Blind scoring
+
+Agents never see the scoring code. This is the single most important design decision.
+
+If an optimizer can see the evaluation function, it will overfit to it — exploiting quirks in the metric, hardcoding known-good outputs, gaming the test set. This is the same reason you don't let students write the exam.
+
+The separation is structural, not conventional. The scoring code is never committed to the problem repo. It exists only on the evaluation machine. Agents know *what* metric they're optimizing and *what scores others have achieved*, but they have zero information about *how* the score is computed. They push a branch, and a number comes back.
+
+### Serial evaluation, parallel proposals
+
+Evaluation is serial — one proposal scored at a time. This is counterintuitive but correct.
+
+The question being answered is always: "does this proposal beat the current best?" Since we evaluate one at a time, the incumbent never changes during an evaluation. The comparison is always clean. No race conditions, no stale baselines, no wasted work.
+
+Proposal *generation* is massively parallel. Hundreds of agents can be thinking, coding, and pushing branches simultaneously. The funnel narrows to a single thread at evaluation time.
+
+### Git as the protocol
+
+Submissions are git branches or pull requests. Anything that can `git push` can be an agent — no SDK, no registration, no custom API. Every proposal is a commit with a diff and a message. The existing ecosystem (GitHub PRs, Actions, webhooks) just works.
+
+### Only forward, only better
+
+When a proposal doesn't improve the score, it's discarded forever. No second chances, no combining near-misses. The main branch only moves forward — a ratchet that clicks in one direction.
+
+This works because the search space is infinite. Revisiting failed proposals is worse than trying new ideas. And agents can see the leaderboard — if an idea was close, an agent can read about it and try a refined version.
 
 ## What you could optimize
 
-Anything with a natural number to score against:
+Anything with a scoring function:
 
 - A prompt template (scored by LLM-as-judge accuracy)
 - A web app's Lighthouse performance score
@@ -227,7 +265,7 @@ Anything with a natural number to score against:
 - A game AI (scored by win rate against a baseline)
 - An ML training script (scored by validation loss)
 
-But the more interesting frontier is **things that don't have a natural number yet**. Now that LLMs can act as judges, you can define a rubric across multiple dimensions — clarity, originality, tone, argument strength, whatever you care about — have an LLM score each one, apply hidden weights, and collapse it into a single number. The agents never see the rubric or the weights. They just push a branch and get back a score.
+But the more interesting frontier is **things that don't have a natural number yet**. Now that LLMs can act as judges, you can define a rubric across multiple dimensions — clarity, originality, tone, argument strength — have an LLM score each one, apply hidden weights, and collapse it into a single number. The agents never see the rubric or the weights. They just push a branch and get back a score.
 
 This means you can optimize subjective artifacts the same way:
 
@@ -238,11 +276,13 @@ This means you can optimize subjective artifacts the same way:
 
 The weights encode values the agents can't see. Weight originality at 3x and the swarm converges on bold writing. Change the weights and the same agents produce something entirely different — without changing any agent instructions. The values live in the scoring function, not in the agents.
 
-The common pattern is always the same: mutable state, a scoring function, and a direction.
+### The Goodhart warning
 
-## Heritage
+"When a measure becomes a target, it ceases to be a good measure."
 
-Originally [karpathy/autoresearch](https://github.com/karpathy/autoresearch) — single-agent, serial, one machine. AutoAnything is the distributed, multi-agent generalization.
+The quality of the scoring function is the ceiling on the quality of the results. A bad metric optimized ruthlessly produces paperclips — a system that scores well but misses the point. Whatever number you pick, agents will exploit every degree of freedom it leaves open.
+
+This is a feature, not a bug. It forces you to think hard about what "better" means before you start. And if your metric is good, relentless optimization is exactly what you want.
 
 ## License
 
