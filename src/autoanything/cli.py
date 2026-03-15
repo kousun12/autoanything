@@ -343,6 +343,52 @@ def evaluate(problem_dir, baseline_only, push, poll_interval, db):
 
 @main.command()
 @click.option("--dir", "problem_dir", default=".", help="Problem directory.")
+@click.option("--agent", "-a", required=True, help="Shell command to run as the agent.")
+@click.option("--iterations", "-n", default=None, type=int,
+              help="Max iterations (default: unlimited).")
+@click.option("--max-crashes", default=5, help="Stop after N consecutive crashes (default: 5).")
+@click.option("--db", default=None, help="Path to history database.")
+def run(problem_dir, agent, iterations, max_crashes, db):
+    """Run the local optimization loop with an agent command.
+
+    The agent command runs in the problem directory and should modify only the
+    state files listed in problem.yaml. Scoring is hidden from the agent during
+    execution. The framework handles branching, scoring, merging improvements,
+    and updating the leaderboard.
+
+    Examples:
+
+        autoanything run -a "./optimize.sh"
+
+        autoanything run -a "python my_agent.py" -n 50
+
+        autoanything run -a "claude -p 'improve the solution'" -n 10
+    """
+    from autoanything.runner import run_local
+
+    try:
+        config = load_problem(problem_dir)
+    except FileNotFoundError:
+        click.echo("Error: No problem.yaml found. Set up a problem first.", err=True)
+        sys.exit(1)
+    except ValidationError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+    db_path = _resolve_db_path(problem_dir, db)
+
+    run_local(
+        problem_dir=problem_dir,
+        config=config,
+        db_path=db_path,
+        agent_command=agent,
+        max_iterations=iterations,
+        max_consecutive_crashes=max_crashes,
+    )
+
+
+@main.command()
+@click.option("--dir", "problem_dir", default=".", help="Problem directory.")
 @click.option("--port", default=8000, help="Port (default: 8000).")
 @click.option("--host", default="0.0.0.0", help="Host (default: 0.0.0.0).")
 @click.option("--push", is_flag=True, help="Push leaderboard updates to origin.")

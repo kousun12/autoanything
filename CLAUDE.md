@@ -13,6 +13,7 @@ autoanything/
 ├── src/autoanything/        # Installable package (the framework)
 │   ├── cli.py                # CLI entry point (click)
 │   ├── evaluator.py          # Polling evaluation loop
+│   ├── runner.py             # Local optimization loop (autoanything run)
 │   ├── server.py             # Webhook server (FastAPI)
 │   ├── scoring.py            # Run score.sh, parse JSON output
 │   ├── problem.py            # Parse + validate problem.yaml (PyYAML)
@@ -33,7 +34,12 @@ autoanything/
 ```bash
 uv sync                                    # install dependencies
 
-# Evaluator (run from a problem directory, not by agents)
+# Local optimization loop (run from a problem directory)
+autoanything run -a "./my_agent.sh"        # run agent in a loop, score locally
+autoanything run -a "python opt.py" -n 50  # limit to 50 iterations
+autoanything run -a "claude -p 'improve'" -n 10  # use any command as the agent
+
+# Remote evaluator (run from a problem directory, not by agents)
 autoanything evaluate                      # start the serial evaluation loop
 autoanything evaluate --baseline-only      # just establish the baseline score
 autoanything evaluate --push               # push leaderboard updates to origin
@@ -78,9 +84,10 @@ The evaluator is problem-agnostic — it reads the score metric name from `probl
 
 ## Evaluator Design
 
-- **Two modes**: polling (`autoanything evaluate` watches for branches) or webhook (`autoanything serve` receives PR events)
+- **Three modes**: local loop (`autoanything run`), polling (`autoanything evaluate`), or webhook (`autoanything serve`)
+- **Local loop**: runs a user-provided agent command repeatedly — the framework handles branching, scoring, merging improvements, and leaderboard. Scoring directory is hidden from the agent during execution. Agent gets env vars: `AUTOANYTHING_ITERATION`, `AUTOANYTHING_SCORE`, `AUTOANYTHING_DIRECTION`, `AUTOANYTHING_METRIC`, `AUTOANYTHING_PROBLEM`.
 - **Serial evaluation**: one proposal at a time, no race conditions
-- **Blind scoring**: agents never see `evaluator/` or `scoring/` (gitignored)
+- **Blind scoring**: agents never see `evaluator/` or `scoring/` (gitignored; physically hidden during `run`)
 - **SQLite history**: all evaluations recorded in `.autoanything/history.db`
 - **Auto-leaderboard**: `leaderboard.md` updated after each evaluation
 
