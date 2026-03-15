@@ -1,52 +1,59 @@
-"""Leaderboard rendering — generate leaderboard.md from history."""
+"""Leaderboard and history rendering from the evaluation database."""
 
 import sqlite3
 
 
+def _render_table(rows, columns, lines):
+    """Render rows as a markdown table."""
+    lines.append("| " + " | ".join(columns) + " |")
+    lines.append("|" + "|".join("---" for _ in columns) + "|")
+    for row in rows:
+        lines.append("| " + " | ".join(str(v) for v in row) + " |")
+
+
 def export_leaderboard(conn: sqlite3.Connection, output_path: str,
                        direction: str = "minimize"):
-    """Export the leaderboard to a markdown file.
-
-    Args:
-        conn: SQLite connection to the history database.
-        output_path: Path to write leaderboard.md.
-        direction: "minimize" or "maximize" — controls sort order.
-    """
+    """Export the leaderboard (top accepted scores) to a markdown file."""
     order = "ASC" if direction == "minimize" else "DESC"
 
-    # Top scores (accepted + baseline)
     top = conn.execute(f"""
         SELECT score, branch, description, evaluated_at
         FROM evaluations WHERE status IN ('baseline', 'accepted')
         ORDER BY score {order}
     """).fetchall()
 
-    # Recent attempts (last 20)
-    recent = conn.execute("""
-        SELECT score, status, branch, description, evaluated_at
-        FROM evaluations ORDER BY id DESC LIMIT 20
-    """).fetchall()
-
     lines = ["# Leaderboard", ""]
-    lines.append("| # | Score | Branch | Description | When |")
-    lines.append("|---|-------|--------|-------------|------|")
+    rows = []
     for i, (score, branch, desc, when) in enumerate(top, 1):
         score_str = f"{score:.6f}" if score is not None else "crash"
         when_short = when[:16] if when else ""
-        lines.append(
-            f"| {i} | {score_str} | {branch} | {desc or ''} | {when_short} |"
-        )
+        rows.append((i, score_str, branch, desc or "", when_short))
+    _render_table(rows, ("#", "Score", "Branch", "Description", "When"), lines)
+    lines.append("")
 
-    lines.extend(["", "## Recent Attempts", ""])
-    lines.append("| Score | Status | Branch | Description | When |")
-    lines.append("|-------|--------|--------|-------------|------|")
+    with open(output_path, "w") as f:
+        f.write("\n".join(lines))
+
+
+def export_history(conn: sqlite3.Connection, output_path: str,
+                   limit: int = 50):
+    """Export recent evaluation history to a markdown file.
+
+    Shows the most recent evaluations (accepted, rejected, crashed) so that
+    agents can see what has been tried and learn from past attempts.
+    """
+    recent = conn.execute("""
+        SELECT score, status, branch, description, evaluated_at
+        FROM evaluations ORDER BY id DESC LIMIT ?
+    """, (limit,)).fetchall()
+
+    lines = ["# History", ""]
+    rows = []
     for score, status, branch, desc, when in recent:
         score_str = f"{score:.6f}" if score is not None else "crash"
-        when_short = when[11:16] if when and len(when) > 16 else (when or "")
-        lines.append(
-            f"| {score_str} | {status} | {branch} | {desc or ''} | {when_short} |"
-        )
-
+        when_short = when[:16] if when else ""
+        rows.append((score_str, status, branch, desc or "", when_short))
+    _render_table(rows, ("Score", "Status", "Branch", "Description", "When"), lines)
     lines.append("")
 
     with open(output_path, "w") as f:

@@ -17,7 +17,7 @@ autoanything/
 │   ├── server.py             # Webhook server (FastAPI)
 │   ├── scoring.py            # Run score.sh, parse JSON output
 │   ├── problem.py            # Parse + validate problem.yaml (PyYAML)
-│   ├── leaderboard.py        # Render leaderboard.md from history
+│   ├── leaderboard.py        # Render leaderboard.md and history.md from DB
 │   ├── plotting.py           # Progress chart generation (matplotlib)
 │   ├── history.py            # SQLite history management
 │   └── git.py                # Git operations (subprocess wrappers)
@@ -77,7 +77,7 @@ The evaluator is problem-agnostic — it reads the score metric name from `probl
 ## Agent Protocol
 
 1. Pull latest master, create branch: `proposals/<name>/<description>`
-2. Read `problem.yaml`, `context/`, and `leaderboard.md` for context
+2. Read `problem.yaml`, `context/`, `leaderboard.md`, and `history.md` for context
 3. Modify ONLY the files listed under `state:` (or `mutable:`) in `problem.yaml`
 4. Commit with a clear message explaining the approach
 5. Push the branch or open a PR targeting master — the evaluator scores it and merges if improved
@@ -89,7 +89,7 @@ The evaluator is problem-agnostic — it reads the score metric name from `probl
 - **Serial evaluation**: one proposal at a time, no race conditions
 - **Blind scoring**: agents never see `evaluator/` or `scoring/` (gitignored; physically hidden during `run`)
 - **SQLite history**: all evaluations recorded in `.autoanything/history.db`
-- **Auto-leaderboard**: `leaderboard.md` updated after each evaluation
+- **Auto-leaderboard**: `leaderboard.md` (best scores) and `history.md` (recent attempts) updated after each evaluation
 
 ## Available Problems
 

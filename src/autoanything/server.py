@@ -18,7 +18,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Response
 
 from autoanything.history import init_db, get_incumbent, update_incumbent, record_evaluation, is_evaluated
-from autoanything.leaderboard import export_leaderboard
+from autoanything.leaderboard import export_leaderboard, export_history
 from autoanything.problem import load_problem
 from autoanything.scoring import run_score, is_better
 
@@ -320,10 +320,12 @@ def create_app(problem_dir: str, webhook_secret: str = None,
             _update_leaderboard(conn, pr_number, score)
 
     def _update_leaderboard(conn, pr_number: int, score: float | None):
-        """Export leaderboard, commit, and optionally push."""
+        """Export leaderboard and history, commit, and optionally push."""
         leaderboard_path = os.path.join(problem_dir, "leaderboard.md")
+        history_path = os.path.join(problem_dir, "history.md")
         export_leaderboard(conn, leaderboard_path, direction=direction)
-        git("add", "leaderboard.md", cwd=problem_dir)
+        export_history(conn, history_path)
+        git("add", "leaderboard.md", "history.md", cwd=problem_dir)
         score_str = f"{score:.6f}" if score is not None else "crash"
         git(
             "commit", "-m",

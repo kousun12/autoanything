@@ -10,7 +10,7 @@ Optimize the metric `{{metric}}` ({{direction}}).
 2. Create a branch: `proposals/<your-name>/<description>`
 3. Read `problem.yaml` for the full problem definition and constraints.
 4. Read files in `context/` for background information.
-5. Check `leaderboard.md` for current scores and what has been tried.
+5. Check `leaderboard.md` for the best scores and `history.md` for recent attempts.
 6. Modify only the files listed under `state:` in `problem.yaml`.
 7. Commit with a clear message explaining your approach.
 8. Push your branch or open a PR targeting main.
@@ -21,4 +21,5 @@ Optimize the metric `{{metric}}` ({{direction}}).
 - `problem.yaml` — problem definition and constraints
 - `state/` — files you can modify
 - `context/` — read-only background information
-- `leaderboard.md` — current scores and history
+- `leaderboard.md` — best accepted scores
+- `history.md` — recent attempts with scores and outcomes

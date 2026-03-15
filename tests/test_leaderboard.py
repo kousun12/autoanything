@@ -1,12 +1,12 @@
-"""Tests for autoanything.leaderboard — leaderboard.md rendering.
+"""Tests for autoanything.leaderboard — leaderboard.md and history.md rendering.
 
 The leaderboard module reads from the history database and produces
-a markdown leaderboard file.
+markdown files: leaderboard.md (top scores) and history.md (recent attempts).
 """
 
 import pytest
 
-from autoanything.leaderboard import export_leaderboard
+from autoanything.leaderboard import export_leaderboard, export_history
 from autoanything.history import init_db, record_evaluation, update_incumbent
 
 
@@ -54,19 +54,65 @@ class TestExportLeaderboard:
         pos_100 = content.find("100.0")
         assert pos_50 < pos_80 < pos_100
 
-    def test_recent_attempts_section(self, populated_db):
+    def test_leaderboard_excludes_rejected(self, populated_db):
         conn, tmp_path = populated_db
         out = str(tmp_path / "leaderboard.md")
         export_leaderboard(conn, out, direction="minimize")
         content = (tmp_path / "leaderboard.md").read_text()
-        assert "Recent Attempts" in content
+        assert "rejected" not in content
+        assert "crash" not in content
 
-    def test_crash_shown_in_recent(self, populated_db):
+
+class TestExportHistory:
+    """History file generation from recent evaluations."""
+
+    def test_creates_file(self, populated_db):
         conn, tmp_path = populated_db
-        out = str(tmp_path / "leaderboard.md")
-        export_leaderboard(conn, out, direction="minimize")
-        content = (tmp_path / "leaderboard.md").read_text()
-        assert "crash" in content.lower()
+        out = str(tmp_path / "history.md")
+        export_history(conn, out)
+        assert (tmp_path / "history.md").exists()
+
+    def test_contains_header(self, populated_db):
+        conn, tmp_path = populated_db
+        out = str(tmp_path / "history.md")
+        export_history(conn, out)
+        content = (tmp_path / "history.md").read_text()
+        assert "# History" in content
+
+    def test_shows_all_statuses(self, populated_db):
+        conn, tmp_path = populated_db
+        out = str(tmp_path / "history.md")
+        export_history(conn, out)
+        content = (tmp_path / "history.md").read_text()
+        assert "accepted" in content
+        assert "rejected" in content
+        assert "crash" in content
+        assert "baseline" in content
+
+    def test_most_recent_first(self, populated_db):
+        conn, tmp_path = populated_db
+        out = str(tmp_path / "history.md")
+        export_history(conn, out)
+        content = (tmp_path / "history.md").read_text()
+        # Most recent entry (acc2, 50.0) should appear before baseline (100.0)
+        pos_50 = content.find("50.0")
+        pos_100 = content.find("100.0")
+        assert pos_50 < pos_100
+
+    def test_respects_limit(self, tmp_path):
+        db_path = str(tmp_path / "history.db")
+        conn = init_db(db_path)
+        for i in range(10):
+            record_evaluation(conn, f"sha{i}", f"branch-{i}", float(i), "rejected",
+                              f"attempt {i}", 1.0)
+
+        out = str(tmp_path / "history.md")
+        export_history(conn, out, limit=3)
+        content = (tmp_path / "history.md").read_text()
+        # Should only have 3 data rows (plus header + separator)
+        lines = [l for l in content.strip().split("\n") if l.startswith("|")]
+        assert len(lines) == 5  # header + separator + 3 data rows
+        conn.close()
 
     def test_maximize_reverses_order(self, tmp_path):
         db_path = str(tmp_path / "history.db")

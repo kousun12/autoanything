@@ -24,7 +24,7 @@ from autoanything.history import (
     record_evaluation,
     is_evaluated,
 )
-from autoanything.leaderboard import export_leaderboard
+from autoanything.leaderboard import export_leaderboard, export_history
 from autoanything.scoring import run_score, is_better
 
 
@@ -66,7 +66,9 @@ def establish_baseline(conn, problem_dir: str, config):
         )
         update_incumbent(conn, commit_sha, score)
         export_leaderboard(conn, leaderboard_path, direction=config.score.direction)
-        git("add", "leaderboard.md", cwd=problem_dir)
+        history_path = os.path.join(problem_dir, "history.md")
+        export_history(conn, history_path)
+        git("add", "leaderboard.md", "history.md", cwd=problem_dir)
         git("commit", "-m", "Initialize leaderboard with baseline score",
             cwd=problem_dir, check=False)
         print(f"Baseline established: {score_name} = {score:.6f} ({duration:.0f}s)")
@@ -146,8 +148,10 @@ def evaluate_proposal(conn, branch: str, commit_sha: str, direction: str,
         )
 
     export_leaderboard(conn, leaderboard_path, direction=direction)
+    history_path = os.path.join(problem_dir, "history.md")
+    export_history(conn, history_path)
     score_str = f"{score:.6f}" if score else "crash"
-    git("add", "leaderboard.md", cwd=problem_dir)
+    git("add", "leaderboard.md", "history.md", cwd=problem_dir)
     git("commit", "-m",
         f"Update leaderboard: {branch} ({score_str})",
         cwd=problem_dir, check=False)

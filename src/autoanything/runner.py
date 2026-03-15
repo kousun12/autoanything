@@ -18,7 +18,7 @@ from autoanything.history import (
     update_incumbent,
     record_evaluation,
 )
-from autoanything.leaderboard import export_leaderboard
+from autoanything.leaderboard import export_leaderboard, export_history
 from autoanything.scoring import run_score, is_better
 
 
@@ -82,6 +82,7 @@ def run_local(problem_dir, config, db_path, agent_command,
     timeout = config.score.timeout
     direction = config.score.direction
     leaderboard_path = os.path.join(problem_dir, "leaderboard.md")
+    history_path = os.path.join(problem_dir, "history.md")
 
     # Recover scoring if hidden from a previous interrupted run
     _recover_scoring(problem_dir, config.score.script)
@@ -112,7 +113,8 @@ def run_local(problem_dir, config, db_path, agent_command,
                           "initial baseline", duration, metrics=metrics)
         update_incumbent(conn, commit_sha, score_val)
         export_leaderboard(conn, leaderboard_path, direction=direction)
-        git("add", "leaderboard.md", cwd=problem_dir)
+        export_history(conn, history_path)
+        git("add", "leaderboard.md", "history.md", cwd=problem_dir)
         git("commit", "-m", "Initialize leaderboard with baseline score",
             cwd=problem_dir, check=False)
 
@@ -267,9 +269,10 @@ def run_local(problem_dir, config, db_path, agent_command,
             # Clean up proposal branch
             git("branch", "-D", branch, cwd=problem_dir, check=False)
 
-            # Update leaderboard
+            # Update leaderboard and history
             export_leaderboard(conn, leaderboard_path, direction=direction)
-            git("add", "leaderboard.md", cwd=problem_dir)
+            export_history(conn, history_path)
+            git("add", "leaderboard.md", "history.md", cwd=problem_dir)
             score_str = f"{score_val:.6f}" if score_val is not None else "crash"
             git("commit", "-m",
                 f"Update leaderboard: attempt #{iteration} ({score_str})",

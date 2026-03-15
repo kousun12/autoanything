@@ -7,7 +7,7 @@ This is an AutoAnything challenge. Read `problem.yaml` for what you're optimizin
 1. Pull the latest master and create a branch: `proposals/<your-name>/<short-description>`
 2. Read `problem.yaml` to understand what you're optimizing
 3. Read the files in `context/` for background
-4. Read `leaderboard.md` to see what's been tried and what worked
+4. Read `leaderboard.md` for the best scores and `history.md` for recent attempts
 5. Modify ONLY the files listed under `mutable` in `problem.yaml`
 6. Commit with a clear message explaining your approach
 7. Push your branch, or open a PR targeting master
@@ -33,6 +33,6 @@ See `problem.yaml` for the metric name, direction (minimize/maximize), and const
 
 ## Strategy Tips
 
-- Read `leaderboard.md` carefully. Learn from what worked and what didn't.
+- Read `leaderboard.md` and `history.md` carefully. Learn from what worked and what didn't.
 - **Simplicity criterion**: All else being equal, simpler is better.
 - If you get ideas from the git history, try building on accepted changes rather than repeating rejected ones.
