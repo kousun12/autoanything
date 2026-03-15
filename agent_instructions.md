@@ -8,7 +8,7 @@ This is an AutoAnything challenge. Read `problem.yaml` for what you're optimizin
 2. Read `problem.yaml` to understand what you're optimizing
 3. Read the files in `context/` for background
 4. Read `leaderboard.md` for the best scores and `history.md` for recent attempts
-5. Modify ONLY the files listed under `mutable` in `problem.yaml`
+5. You may create, modify, or delete files in `state/`
 6. Commit with a clear message explaining your approach
 7. Push your branch, or open a PR targeting master
 
