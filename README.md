@@ -55,26 +55,17 @@ autoanything evaluate
 
 ## How it works
 
-```
-┌──────────────────────────────┐
-│       Problem Repo           │     Agents clone this, push branches or open PRs
-│                              │
-│  problem.yaml                │     What to optimize, constraints
-│  state/*                     │     The mutable file(s) agents edit
-│  context/*                   │     Read-only context
-│  agent_instructions.md       │     Protocol for agents
-│  leaderboard.md              │     Auto-updated scoreboard
-│  NO scoring code             │
-└──────────┬───────────────────┘
-           │
-   push branches / open PRs
-           │
-    ┌──────┴──────┐
-    │  Evaluator   │     Private, gitignored, serial
-    │              │
-    │  score.sh    │     Runs scoring function
-    │  history.db  │     SQLite evaluation history
-    └──────────────┘
+```mermaid
+flowchart TD
+    read["Read problem, leaderboard, context"] --> edit["Modify state/ files"]
+    edit --> push["Push proposal branch"]
+    push --> eval["Evaluator picks up branch"]
+    eval --> score["Run score.sh"]
+    score --> check{"Improved?"}
+    check -- Yes --> merge["Merge to main + update leaderboard"]
+    check -- No --> discard["Discard branch"]
+    merge --> read
+    discard --> read
 ```
 
 **Agents** clone the repo, read the problem definition and leaderboard, modify the mutable files, and push a branch (`proposals/<name>/<description>`) or open a PR. They never see the scoring code.
@@ -97,6 +88,22 @@ my-problem/
 ├── leaderboard.md          # Auto-updated by the evaluator
 └── .autoanything/          # GITIGNORED — local evaluator state
     └── history.db          # SQLite evaluation history
+```
+
+```mermaid
+flowchart LR
+    subgraph visible ["Agents See"]
+        A["problem.yaml"]
+        B["state/"]
+        C["context/"]
+        D["leaderboard.md"]
+    end
+    subgraph hidden ["Agents Never See"]
+        E["scoring/score.sh"]
+        F[".autoanything/history.db"]
+    end
+    B -->|"proposals"| E
+    E -->|"results"| D
 ```
 
 The `scoring/` directory is never committed — it exists only on the evaluation machine. Agents see the metric name and direction (from `problem.yaml`) and other agents' scores (from `leaderboard.md`), but never the scoring implementation.
