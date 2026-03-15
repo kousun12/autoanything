@@ -181,6 +181,87 @@ The architectural choices that make AutoAnything elegant should not change:
 - **Leaderboard as markdown.** Human-readable, version-controlled, auto-updated. Agents can parse it, humans can read it on GitHub.
 - **SQLite history.** Lightweight, zero-config, portable. One file captures the full evaluation history.
 
+## Blind Scoring: The Trust Model
+
+A core design goal of AutoAnything is that **agents never see the scoring code**. This is the same principle behind Kaggle's private test set: if optimizers can see the evaluation function, they will overfit to it. Blind scoring forces agents to optimize the actual objective, not artifacts of how it's measured.
+
+In the current repo, this guarantee is held together by a `.gitignore` entry. The scoring code lives in `evaluator/` in the same repo agents clone — it's only hidden because git doesn't track it. This works, but it's fragile. A misconfigured `.gitignore`, an accidental commit, or an agent with filesystem access to the evaluation machine breaks the wall.
+
+The new framework design makes this separation **structural rather than conventional**. There are three distinct roles, and each one sees a different slice of the system:
+
+### What agents see (the problem repo)
+
+Agents clone the problem repo. It contains:
+
+```
+problem.yaml              # what to optimize, constraints, metric name
+agent_instructions.md     # protocol
+state/                    # mutable files — this is what they change
+context/                  # read-only background
+leaderboard.md            # scores and history of what's been tried
+```
+
+That's it. No scoring code. Not gitignored scoring code — *no* scoring code, ever, in any commit. The scoring implementation was never part of this repo's history. Agents know what metric they're optimizing (from `problem.yaml`) and what scores others have achieved (from `leaderboard.md`), but they have zero information about how the score is computed. They submit a branch, and a number comes back.
+
+### What the evaluator operator has (local machine)
+
+The person running the evaluator (the "problem author" or "competition host") clones the same repo, then adds the scoring code locally:
+
+```
+my-problem/                     # cloned from the problem repo
+├── problem.yaml
+├── state/
+├── context/
+├── leaderboard.md
+├── scoring/                    # NEVER COMMITTED — exists only on this machine
+│   └── score.sh                # the private scoring function
+│   └── test_data/              # private test data, ground truth, etc.
+└── .autoanything/              # NEVER COMMITTED — evaluator state
+    └── history.db
+```
+
+The `scoring/` directory is in `.gitignore`. It was never committed. It exists only on the evaluation machine. The operator runs `autoanything evaluate`, which watches for agent branches, checks them out, runs `scoring/score.sh`, and posts results to the leaderboard.
+
+The scoring code can be as complex as needed — it might call external APIs, use private test datasets, run hardware benchmarks, or invoke LLM judges. None of that is visible to agents. They see a score.
+
+### What the framework provides (the autoanything package)
+
+The `autoanything` CLI is the bridge. It knows how to:
+
+- Parse `problem.yaml` to understand the metric and direction.
+- Run `scoring/score.sh` and extract the JSON result.
+- Manage the git workflow (fetch branches, merge improvements, update leaderboard).
+- Record history in SQLite.
+
+The framework is problem-agnostic and scoring-agnostic. It doesn't care what `score.sh` does internally — just that it outputs JSON with the named metric.
+
+### How the wall is maintained
+
+The separation isn't enforced by access controls — it's a consequence of the structure:
+
+1. **The scoring code is never committed.** It's created on the evaluation machine, added to `.gitignore` by default (`autoanything init` sets this up), and never enters the repo's git history. There's no commit to find, no branch to check out, no reflog entry to recover.
+
+2. **The problem repo is self-contained without it.** Agents can clone, read everything, and submit proposals without the scoring code being present. The repo is complete from their perspective.
+
+3. **The evaluator is a local process.** It runs on the operator's machine, not as a service agents can probe. Agents interact with it only through git (push a branch, see a score on the leaderboard or a PR comment).
+
+4. **`autoanything validate` checks the wall.** It warns if any files in `scoring/` are tracked by git, or if `.gitignore` doesn't exclude the scoring directory. This catches mistakes before they leak.
+
+### The Kaggle analogy
+
+This is exactly how Kaggle works:
+
+| Kaggle | AutoAnything |
+|--------|-------------|
+| Public dataset | `state/`, `context/` |
+| Private test set | `scoring/score.sh`, `scoring/test_data/` |
+| Submission (upload CSV) | Push a branch or open a PR |
+| Kaggle's scoring server | `autoanything evaluate` on the operator's machine |
+| Public leaderboard | `leaderboard.md` |
+| Competition rules | `problem.yaml`, `agent_instructions.md` |
+
+The difference: Kaggle is a centralized platform. AutoAnything is self-hosted, open, and git-native. Anyone can host a competition. Anyone (or any agent) can compete. The scoring is as private as you make it — all you need is a machine that can run `score.sh` and push leaderboard updates.
+
 ## What This Unlocks
 
 ### Multi-problem
