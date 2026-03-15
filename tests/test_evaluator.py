@@ -5,6 +5,8 @@ scores them, merges improvements, and updates the leaderboard. These
 tests verify the core logic with mocked git/scoring operations.
 """
 
+import os
+
 import pytest
 from unittest.mock import patch, MagicMock
 
@@ -21,6 +23,17 @@ def eval_db(tmp_path):
     db_path = str(tmp_path / "history.db")
     conn = init_db(db_path)
     return conn, db_path
+
+
+def _make_config(**overrides):
+    """Build a mock ProblemConfig with sensible defaults."""
+    defaults = dict(
+        score=MagicMock(name="cost", script="scoring/score.sh", timeout=900,
+                        direction="minimize"),
+        git=MagicMock(base_branch="main"),
+    )
+    defaults.update(overrides)
+    return MagicMock(**defaults)
 
 
 # Patch targets: the evaluator imports git helpers and scoring from their
@@ -41,10 +54,7 @@ class TestEstablishBaseline:
         conn, db_path = eval_db
         mock_run_score.return_value = (42.5, {"cost": 42.5}, 1.0, None)
 
-        result = establish_baseline(conn, problem_dir=str(tmp_path), config=MagicMock(
-            score=MagicMock(name="cost", script="scoring/score.sh", timeout=900),
-            git=MagicMock(base_branch="main"),
-        ))
+        result = establish_baseline(conn, problem_dir=str(tmp_path), config=_make_config())
 
         assert result is True
         inc = get_incumbent(conn)
@@ -58,13 +68,39 @@ class TestEstablishBaseline:
         conn, db_path = eval_db
         mock_run_score.return_value = (None, None, 1.0, "script failed")
 
-        result = establish_baseline(conn, problem_dir=str(tmp_path), config=MagicMock(
-            score=MagicMock(name="cost", script="scoring/score.sh", timeout=900),
-            git=MagicMock(base_branch="main"),
-        ))
+        result = establish_baseline(conn, problem_dir=str(tmp_path), config=_make_config())
 
         assert result is False
         assert get_incumbent(conn) is None
+
+    @patch(SCORE_PATCH)
+    @patch(HEAD_PATCH, return_value="abc1234567890abcdef1234567890abcdef123456")
+    @patch(GIT_PATCH)
+    def test_writes_leaderboard_and_history(self, mock_git, mock_head, mock_run_score, eval_db, tmp_path):
+        conn, db_path = eval_db
+        mock_run_score.return_value = (42.5, {"cost": 42.5}, 1.0, None)
+
+        establish_baseline(conn, problem_dir=str(tmp_path), config=_make_config())
+
+        leaderboard = (tmp_path / "leaderboard.md").read_text()
+        assert "# Leaderboard" in leaderboard
+        assert "42.5" in leaderboard
+
+        history = (tmp_path / "history.md").read_text()
+        assert "# History" in history
+        assert "baseline" in history
+
+    @patch(SCORE_PATCH)
+    @patch(HEAD_PATCH, return_value="abc1234567890abcdef1234567890abcdef123456")
+    @patch(GIT_PATCH)
+    def test_failure_does_not_write_files(self, mock_git, mock_head, mock_run_score, eval_db, tmp_path):
+        conn, db_path = eval_db
+        mock_run_score.return_value = (None, None, 1.0, "script failed")
+
+        establish_baseline(conn, problem_dir=str(tmp_path), config=_make_config())
+
+        assert not (tmp_path / "leaderboard.md").exists()
+        assert not (tmp_path / "history.md").exists()
 
 
 class TestEvaluateProposal:
@@ -81,10 +117,7 @@ class TestEvaluateProposal:
         evaluate_proposal(
             conn, branch="proposals/agent/test", commit_sha="prop1",
             direction="minimize", problem_dir=str(tmp_path),
-            config=MagicMock(
-                score=MagicMock(name="cost", script="scoring/score.sh", timeout=900),
-                git=MagicMock(base_branch="main"),
-            ),
+            config=_make_config(),
         )
 
         # Should update incumbent
@@ -102,10 +135,7 @@ class TestEvaluateProposal:
         evaluate_proposal(
             conn, branch="proposals/agent/test", commit_sha="prop2",
             direction="minimize", problem_dir=str(tmp_path),
-            config=MagicMock(
-                score=MagicMock(name="cost", script="scoring/score.sh", timeout=900),
-                git=MagicMock(base_branch="main"),
-            ),
+            config=_make_config(),
         )
 
         # Incumbent unchanged
@@ -123,10 +153,7 @@ class TestEvaluateProposal:
         evaluate_proposal(
             conn, branch="proposals/agent/crash", commit_sha="prop3",
             direction="minimize", problem_dir=str(tmp_path),
-            config=MagicMock(
-                score=MagicMock(name="cost", script="scoring/score.sh", timeout=900),
-                git=MagicMock(base_branch="main"),
-            ),
+            config=_make_config(),
         )
 
         # Incumbent unchanged
@@ -151,11 +178,80 @@ class TestEvaluateProposal:
         evaluate_proposal(
             conn, branch="proposals/agent/test", commit_sha="prop4",
             direction="maximize", problem_dir=str(tmp_path),
-            config=MagicMock(
-                score=MagicMock(name="accuracy", script="scoring/score.sh", timeout=900),
-                git=MagicMock(base_branch="main"),
+            config=_make_config(
+                score=MagicMock(name="accuracy", script="scoring/score.sh", timeout=900,
+                                direction="maximize"),
             ),
         )
 
         inc = get_incumbent(conn)
         assert inc["score"] == 100.0
+
+    @patch(SCORE_PATCH)
+    @patch(MSG_PATCH, return_value="accepted improvement")
+    @patch(GIT_PATCH)
+    def test_accepted_writes_leaderboard_and_history(self, mock_git, mock_msg, mock_run_score, eval_db, tmp_path):
+        conn, db_path = eval_db
+        record_evaluation(conn, "base", "main", 100.0, "baseline", "initial", 1.0)
+        update_incumbent(conn, "base", 100.0)
+        mock_run_score.return_value = (50.0, {"cost": 50.0}, 2.0, None)
+
+        evaluate_proposal(
+            conn, branch="proposals/agent/better", commit_sha="prop1",
+            direction="minimize", problem_dir=str(tmp_path),
+            config=_make_config(),
+        )
+
+        leaderboard = (tmp_path / "leaderboard.md").read_text()
+        assert "50.0" in leaderboard
+        assert "accepted improvement" in leaderboard
+
+        history = (tmp_path / "history.md").read_text()
+        assert "accepted" in history
+        assert "50.0" in history
+
+    @patch(SCORE_PATCH)
+    @patch(MSG_PATCH, return_value="bad idea")
+    @patch(GIT_PATCH)
+    def test_rejected_writes_leaderboard_and_history(self, mock_git, mock_msg, mock_run_score, eval_db, tmp_path):
+        conn, db_path = eval_db
+        record_evaluation(conn, "base", "main", 50.0, "baseline", "initial", 1.0)
+        update_incumbent(conn, "base", 50.0)
+        mock_run_score.return_value = (100.0, {"cost": 100.0}, 2.0, None)
+
+        evaluate_proposal(
+            conn, branch="proposals/agent/worse", commit_sha="prop2",
+            direction="minimize", problem_dir=str(tmp_path),
+            config=_make_config(),
+        )
+
+        leaderboard = (tmp_path / "leaderboard.md").read_text()
+        # Leaderboard only has accepted/baseline, not the rejected proposal
+        assert "50.0" in leaderboard
+
+        history = (tmp_path / "history.md").read_text()
+        assert "rejected" in history
+        assert "100.0" in history
+        assert "bad idea" in history
+
+    @patch(SCORE_PATCH)
+    @patch(MSG_PATCH, return_value="exploded")
+    @patch(GIT_PATCH)
+    def test_crash_writes_leaderboard_and_history(self, mock_git, mock_msg, mock_run_score, eval_db, tmp_path):
+        conn, db_path = eval_db
+        record_evaluation(conn, "base", "main", 50.0, "baseline", "initial", 1.0)
+        update_incumbent(conn, "base", 50.0)
+        mock_run_score.return_value = (None, None, 0.5, "segfault")
+
+        evaluate_proposal(
+            conn, branch="proposals/agent/crash", commit_sha="prop3",
+            direction="minimize", problem_dir=str(tmp_path),
+            config=_make_config(),
+        )
+
+        leaderboard = (tmp_path / "leaderboard.md").read_text()
+        assert "# Leaderboard" in leaderboard
+
+        history = (tmp_path / "history.md").read_text()
+        assert "crash" in history
+        assert "exploded" in history
