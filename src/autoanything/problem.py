@@ -149,8 +149,14 @@ def load_problem(path) -> ProblemConfig:
     git_data = data.get("git", {})
     if not isinstance(git_data, dict):
         git_data = {}
+
+    base_branch = git_data.get("base_branch")
+    if not base_branch:
+        from autoanything.git import detect_default_branch
+        base_branch = detect_default_branch(cwd=str(path))
+
     git_config = GitConfig(
-        base_branch=git_data.get("base_branch", "main"),
+        base_branch=base_branch,
         proposal_pattern=git_data.get("proposal_pattern", "proposals/*"),
     )
 

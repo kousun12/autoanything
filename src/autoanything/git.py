@@ -48,6 +48,17 @@ def get_commit_message(commit_sha: str, cwd: str) -> str:
     return git("log", "-1", "--format=%s", commit_sha, cwd=cwd).stdout.strip()
 
 
+def detect_default_branch(cwd: str) -> str:
+    """Detect the default branch name (main or master)."""
+    result = git("branch", "--list", "main", cwd=cwd, check=False)
+    if result.stdout.strip():
+        return "main"
+    result = git("branch", "--list", "master", cwd=cwd, check=False)
+    if result.stdout.strip():
+        return "master"
+    return "main"
+
+
 def merge_proposal(branch: str, base_branch: str, cwd: str):
     """Merge a successful proposal into the base branch."""
     git("checkout", base_branch, cwd=cwd)
