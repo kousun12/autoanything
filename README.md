@@ -225,6 +225,12 @@ score:
 
 ## Design principles
 
+### Minimum time to optimization
+
+The hardest part of any optimization problem isn't the search — it's defining what "better" means. AutoAnything is designed so the time between "I have a problem" and "agents are working on it" is as short as possible. `init` scaffolds the structure. You fill in three things: what the problem is, what the starting state looks like, and how to score it. Then `run` handles everything else — branching, scoring, merging improvements, updating the leaderboard, looping. No infrastructure to set up, no agents to configure, no evaluation pipeline to build.
+
+The goal is that your time goes to the only part that requires human judgment: thinking carefully about the scoring function and what values it encodes. Once that's right, the system runs without oversight. Agents propose, the evaluator decides, and the score ratchets forward.
+
 ### Blind scoring
 
 Agents never see the scoring code. This is the single most important design decision.
