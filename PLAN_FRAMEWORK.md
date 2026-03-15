@@ -452,27 +452,39 @@ Key conventions the tests lock in:
 
 ### Phase 2: Wire CLI + Cleanup (reduced scope — extraction done in Phase 1)
 
-**Goal:** Complete the transition from evaluator scripts to the `autoanything` CLI. Rename directories, add entry points, remove old scripts.
+**Goal:** Complete the transition from evaluator scripts to the `autoanything` CLI. Rename directories, remove old scripts.
 
-**Note:** Phase 1 already created the full `src/autoanything/` package with all modules extracted. What remains is wiring the `evaluate` and `serve` CLI commands, adding the entry point, renaming directories, and removing the old evaluator scripts.
+**Note:** Phase 1 already created the full `src/autoanything/` package with all modules extracted. The `[project.scripts]` entry point, `click`/`rich` in main deps — all done. What remains is wiring the `evaluate` and `serve` CLI commands, renaming directories, and removing the old evaluator scripts.
 
 **Steps:**
 
-1. Wire `autoanything evaluate` CLI command to `src/autoanything/evaluator.py`:
-   - Implement the polling loop (currently only `establish_baseline` and `evaluate_proposal` exist — need the main loop with fetch/poll).
+1. Fill out `src/autoanything/git.py` with helpers needed by the polling loop:
+   - `get_proposal_branches(cwd, pattern)` — list remote branches matching pattern.
+   - `get_branch_commit(branch, cwd)` — resolve a remote branch to a commit SHA.
+   - `get_head_commit(cwd)` — resolve HEAD to a commit SHA.
+   - `get_commit_message(commit_sha, cwd)` — first line of a commit message.
+   - `merge_proposal(branch, base_branch, cwd)` — merge a proposal into base.
+   - The existing `git(*args, cwd)` wrapper stays as the foundation.
+
+2. Wire `autoanything evaluate` CLI command to `src/autoanything/evaluator.py`:
+   - Implement the polling loop (~30 lines): fetch, list proposal branches via `git.py` helpers, filter with `is_evaluated` from `history.py`, call `evaluate_proposal` for each.
+   - `establish_baseline` and `evaluate_proposal` already exist as unit functions.
    - Support `--baseline-only`, `--poll-interval`, `--push`, `--db` flags.
 
-2. Wire `autoanything serve` CLI command to `src/autoanything/server.py`:
-   - The `create_app()` factory exists. Need to add the evaluation worker thread and startup scan to the factory version.
+3. Wire `autoanything serve` CLI command to `src/autoanything/server.py`:
+   - The `create_app()` factory exists with `/health` and `/webhook` endpoints + queue logic. What's missing:
+     - `gh()` subprocess helper, `pr_comment`, `pr_merge`, `pr_close`, `pr_diff_files` (~30 lines)
+     - `format_results_comment` — markdown PR comment formatting (~40 lines)
+     - `evaluation_worker` thread that drains the queue and calls scoring/merge logic (~80 lines)
+     - `_evaluate_one_pr` — checkout, validate files, score, comment, merge/close (~60 lines)
+     - `startup_scan` — `gh pr list` to enqueue unevaluated open PRs (~40 lines)
+     - Lifespan context manager to start the worker thread on app startup
+   - Port all of this from `evaluator/server.py` (the working implementation).
    - Support `--port`, `--host`, `--push` flags.
-
-3. Add `[project.scripts]` entry point to `pyproject.toml`:
-   - `autoanything = "autoanything.cli:main"`
-   - Move `click` from dev to main dependencies.
 
 4. Rename `test_problems/` to `examples/`.
 
-5. Remove `evaluator/evaluate.py` and `evaluator/server.py` (they now live in the package). Keep `evaluator/` in gitignore for problem repos' scoring code.
+5. Remove `evaluator/evaluate.py` and `evaluator/server.py` together (server.py imports from evaluate.py via `sys.path` manipulation — they must go as a pair). Keep `evaluator/` in gitignore for problem repos' scoring code.
 
 6. Make evaluator state location configurable:
    - Default: `.autoanything/history.db` in the problem directory.
