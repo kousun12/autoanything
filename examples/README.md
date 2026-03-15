@@ -1,23 +1,8 @@
-# Problems
+# Example Problems
 
-All optimization problems for the AutoAnything framework live here. Each follows the same structure, scores via the same evaluator, and is activated the same way.
+Reference implementations of optimization problems for the AutoAnything framework. Each follows the same structure and scores via the same evaluator.
 
-## Quick Start
-
-```bash
-# Activate a problem (copies files into the repo root)
-bash examples/activate.sh rastrigin
-
-# Verify scoring works
-bash evaluator/score.sh
-
-# Establish baseline and start evaluator
-autoanything evaluate --baseline-only
-autoanything evaluate
-
-# Switch to a different problem
-bash examples/activate.sh tsp
-```
+These examples live in the framework repo for reference. For operational use (running evaluators, accepting agent submissions), see [derby-examples](https://github.com/kousun12/derby-examples).
 
 ## Available Problems
 
@@ -99,8 +84,6 @@ bash examples/activate.sh tsp
 
 ## Creating Your Own Problem
 
-The fastest way to create a new problem:
-
 ```bash
 autoanything init my-problem --metric cost --direction minimize
 cd my-problem
@@ -124,44 +107,7 @@ my-problem/
 
 Your `score.sh` must output a JSON object on its last line with at least the metric key named in `problem.yaml`. The evaluator reads the score name from `problem.yaml` and extracts it from this JSON — everything else is automatic.
 
-Example for a minimization problem:
-
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
-cd "$(cd "$(dirname "$0")/.." && pwd)"
-python3 -c "
-import json, sys
-sys.path.insert(0, 'context')
-sys.path.insert(0, 'state')
-from problem import evaluate
-from solution import x
-print(json.dumps({'score': evaluate(x)}))
-"
-```
-
-## Simulated Test Runs
-
-`run_test.py` simulates an end-to-end optimization run with fake agent submissions and generates a progress chart. Runs in a temp directory — does not touch the repo working tree.
-
-```bash
-# Run a test (generates test_progress_<problem>.png in current dir)
-uv run examples/run_test.py rastrigin
-uv run examples/run_test.py tsp --submissions 20
-uv run examples/run_test.py packing --include-failures -o chart.png
-```
-
-Options:
-- `-n`, `--submissions` — number of simulated submissions (default: 15)
-- `--include-failures` — include intentionally crashing submissions
-- `-o`, `--output` — output chart path (default: `test_progress_<problem>.png`)
-- `--seed` — random seed for reproducibility (default: 42)
-
-Requires `matplotlib` (add with `uv add matplotlib` if not already in deps).
-
-### Progress charts
-
-Generate a progress chart from evaluation history:
+## Progress Charts
 
 ```bash
 autoanything plot                                    # auto-detects DB location

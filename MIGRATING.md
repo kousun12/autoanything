@@ -10,8 +10,8 @@ AutoAnything was previously a **repo you fork**. You cloned it, ran `activate.sh
 |--------|-------|
 | `uv run evaluator/evaluate.py` | `autoanything evaluate` |
 | `uv run evaluator/server.py` | `autoanything serve` |
-| `bash test_problems/activate.sh <name>` | `bash examples/activate.sh <name>` |
-| `uv run test_problems/run_test.py <name>` | `uv run examples/run_test.py <name>` |
+| `bash test_problems/activate.sh <name>` | Problems are now separate repos |
+| `uv run test_problems/run_test.py <name>` | See [derby-examples](https://github.com/kousun12/derby-examples) |
 | `python examples/plot_progress.py db` | `autoanything plot` |
 | Hardcoded `master` branch | Configurable via `git.base_branch` in `problem.yaml` (default: `main`) |
 | Hardcoded `proposals/*` pattern | Configurable via `git.proposal_pattern` in `problem.yaml` |

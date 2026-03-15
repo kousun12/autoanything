@@ -154,7 +154,7 @@ Agents create branches like `proposals/agent-1/higher-lr` and push them, or open
 
 ## Example problems
 
-The [`examples/`](examples/) directory contains four problems for testing and reference:
+The [`examples/`](examples/) directory contains four reference problems showing the structure:
 
 | Problem | Description | Starting → Optimum | Requirements |
 |---------|-------------|-------------------|-------------|
@@ -163,31 +163,9 @@ The [`examples/`](examples/) directory contains four problems for testing and re
 | `packing` | Pack 12 rectangles into smallest box | 13250 → ~6975 | None |
 | `gpt` | Optimize GPT training (val_bpb) | ~1.15 → ? | NVIDIA GPU |
 
-The first three score instantly (<1ms) and need no GPU — use them for development and testing.
+The first three score instantly (<1ms) and need no GPU.
 
-To try an example:
-
-```bash
-# Activate a problem (copies files into the repo root for development)
-bash examples/activate.sh rastrigin
-
-# Verify scoring works
-bash evaluator/score.sh
-
-# Establish baseline and start
-autoanything evaluate --baseline-only
-autoanything evaluate
-```
-
-### Simulated test runs
-
-```bash
-uv run examples/run_test.py rastrigin              # 15 simulated submissions
-uv run examples/run_test.py tsp -n 20              # more submissions
-uv run examples/run_test.py packing --include-failures  # with crash submissions
-```
-
-See [`examples/README.md`](examples/README.md) for details on each problem.
+For runnable problems with evaluator support and simulated test runs, see [derby-examples](https://github.com/kousun12/derby-examples). See [`examples/README.md`](examples/README.md) for details on each problem's structure.
 
 ## Creating your own problem
 

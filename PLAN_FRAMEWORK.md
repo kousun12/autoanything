@@ -565,53 +565,45 @@ Key conventions the tests lock in:
 
 ### Phase 4: Migration and Cleanup [DONE]
 
-**Goal:** Clean up remaining legacy artifacts and migrate standalone scripts.
+**Goal:** Clean up remaining legacy artifacts and migrate standalone scripts. Separate the framework (installable package) from operational problem tooling.
 
 **Note:** Phase 2 already renamed `test_problems/` to `examples/` and updated `CLAUDE.md`. The `evaluator/evaluate.py` and `evaluator/server.py` scripts are not tracked by git (gitignored), so no git removal is needed. They continue to work locally but are superseded by the package.
 
 **Steps:**
 
-1. Kept `activate.sh` in `examples/` as-is — it's still useful for the framework repo's own development (switching between example problems). Not worth an `autoanything activate` CLI command since it's framework-development tooling, not user-facing.
-
-2. Refactored `examples/run_test.py` to import from the `autoanything` package:
-   - Replaced inline `init_db()` and `record_eval()` with `autoanything.history.init_db` and `autoanything.history.record_evaluation`.
-   - Replaced `sys.path` hack for `plot_progress` import with direct `from autoanything.plotting import generate_chart`.
-   - Kept inline scoring functions (rastrigin, tsp, packing) — these are intentionally inlined for test isolation and don't belong in the framework package.
-   - Kept as a standalone script in `examples/` rather than a CLI command, because it bundles problem-specific scoring logic that doesn't belong in the framework.
-
-3. Moved `generate_chart()` from `examples/plot_progress.py` into the package as `src/autoanything/plotting.py`:
+1. Moved `generate_chart()` into the package as `src/autoanything/plotting.py`:
    - Added `autoanything plot` CLI command with auto-detection of direction and score label from `problem.yaml`.
    - CLI supports `--db`, `-o`, `--title`, `--direction`, `--score-label` flags.
    - Changed `generate_chart()` to raise `ImportError`/`ValueError` instead of calling `sys.exit(1)` — callers handle user-facing errors.
-   - Made `examples/plot_progress.py` a thin wrapper that imports from `autoanything.plotting`.
 
-4. Updated `CLAUDE.md`:
-   - Added `plotting.py` to repository structure.
-   - Added `autoanything plot` to the Commands section.
-   - Updated test count to 106.
+2. Removed operational scripts from `examples/`:
+   - Removed `activate.sh` — no longer needed now that problems are separate repos (see [derby-examples](https://github.com/kousun12/derby-examples)). The old design copied problem files into the framework repo root; the new design has each problem as its own repo.
+   - Removed `run_test.py` — simulation harness with problem-specific scoring functions. Belongs with the problem repos, not the framework. Moved to derby-examples.
+   - Removed `plot_progress.py` — superseded by `autoanything plot` CLI command. The `generate_chart()` function now lives in the package at `src/autoanything/plotting.py`.
 
-**Validation:** 106 tests pass across 10 test files. All three test problems (`rastrigin`, `tsp`, `packing`) run correctly with `run_test.py`. Chart generation fails gracefully when matplotlib is not installed.
+3. Kept example problem directories (`rastrigin/`, `tsp/`, `packing/`, `gpt/`) as read-only reference — they show what a problem directory looks like without being operational. Integration tests still load their `problem.yaml` files.
+
+4. Updated all documentation:
+   - `CLAUDE.md` — removed activate.sh references, updated structure to show examples as reference-only, pointed to derby-examples.
+   - `README.md` — removed activate.sh workflow and run_test.py section, pointed to derby-examples for runnable problems.
+   - `MIGRATING.md` — updated command mapping table.
+   - `examples/README.md` — removed activate.sh quick start and run_test.py section, added derby-examples link.
+
+**Validation:** 106 tests pass across 10 test files.
 
 #### Implementation Summary
 
 **What was built:**
-- `src/autoanything/plotting.py` — `generate_chart()` function extracted from `examples/plot_progress.py` into the package, with proper exception handling (raises instead of `sys.exit`).
-- `autoanything plot` CLI command — generates progress charts from evaluation history, with auto-detection of score direction and label from `problem.yaml`.
-- `examples/run_test.py` refactored — removed 30 lines of duplicated DB code (`init_db`, `record_eval`) and `sys.path` hack, replaced with package imports.
-- `examples/plot_progress.py` simplified — now a thin 30-line wrapper around `autoanything.plotting.generate_chart`.
+- `src/autoanything/plotting.py` — `generate_chart()` function extracted into the package with proper exception handling.
+- `autoanything plot` CLI command — generates progress charts from evaluation history.
 - 2 new tests: `TestPlot.test_no_history_fails`, `TestPlot.test_plot_help`.
+- Clean separation: framework repo has the package + reference examples; operational tooling (activate, run_test, plot_progress) lives in derby-examples.
 - 106/106 tests passing.
 
-**Key deviations from the original plan:**
-- `run_test.py` stays as a standalone script rather than becoming `autoanything test`. The script bundles problem-specific scoring functions (rastrigin, TSP, packing) that are intentionally inlined for isolation — these don't belong in the framework package. Making it a CLI command would mean shipping problem-specific code in the framework.
-- `plot_progress.py` became both an `autoanything plot` CLI command AND a thin wrapper script (rather than choosing one or the other). The CLI command is the primary interface; the script exists for backward compatibility and for users who want to call it directly without the `autoanything` CLI.
-- `generate_chart()` was refactored to raise exceptions instead of calling `sys.exit(1)`. This makes it usable as a library function (called by `run_test.py`) without killing the calling process.
-- `activate.sh` left completely unchanged. It's framework-development tooling that works well as-is.
-
-**What this means for Phase 5:**
-- Phase 5 (docs) should reference `autoanything plot` in the README quick start and CLI reference.
-- The `plot_progress.py` standalone script is now a thin wrapper, so docs can point to either `autoanything plot` or `uv run examples/plot_progress.py`.
-- `CLAUDE.md` is already updated — Phase 5 only needs `README.md` rewrite and `MIGRATING.md`.
+**Key decisions:**
+- Example problems stay in the framework repo as reference (not deleted), but operational scripts that run evaluators or simulate submissions don't belong here — they belong with the problem repos.
+- `activate.sh` was removed entirely rather than kept "for convenience." With `--dir` support on all CLI commands and problems in separate repos, there's no need to copy files into the framework repo root.
+- `generate_chart()` raises exceptions instead of `sys.exit(1)`, making it usable as both a CLI command and a library function.
 
 ### Phase 5: Documentation Update [DONE]
 
@@ -628,8 +620,8 @@ Key conventions the tests lock in:
    - Added full CLI reference table with all 9 commands.
    - Added evaluator modes section (polling vs webhook) with CLI commands.
    - Added "Creating your own problem" section referencing `autoanything init`.
-   - Removed all references to `evaluator/evaluate.py`, `evaluator/server.py`, and `test_problems/`.
-   - Kept the example problems section with a note about `activate.sh` for framework development.
+   - Removed all references to `evaluator/evaluate.py`, `evaluator/server.py`, `test_problems/`, and `activate.sh`.
+   - Example problems section points to [derby-examples](https://github.com/kousun12/derby-examples) for runnable problems.
 
 2. Added `MIGRATING.md`:
    - Before/after table mapping old commands to new CLI commands.
@@ -641,26 +633,19 @@ Key conventions the tests lock in:
 
 4. Reviewed all CLI `--help` output — all descriptions are accurate and consistent with the README.
 
-5. *(Additional)* Updated root `problem.yaml` template to reference `examples/activate.sh` instead of `test_problems/activate.sh` and added `autoanything init` as an option.
+5. *(Additional)* Updated `examples/README.md`:
+   - Removed `activate.sh` quick start and `run_test.py` sections.
+   - Added link to derby-examples for operational use.
+   - Kept problem descriptions, "Creating Your Own Problem" section, and `autoanything plot` docs.
 
-6. *(Additional)* Updated `examples/README.md`:
-   - "Creating Your Own Problem" section now leads with `autoanything init` and shows the new directory structure.
-   - Replaced `plot_progress.py` standalone chart docs with `autoanything plot` CLI commands.
-
-**Validation:** 106/106 tests pass. No mentions of `evaluator/evaluate.py`, `evaluator/server.py`, or `test_problems/` remain outside of historical planning docs (`PLAN_FRAMEWORK.md`, `WEB_LISTENER_PLAN.md`) and `MIGRATING.md` (where they appear intentionally in the migration context).
+**Validation:** 106/106 tests pass. No mentions of `evaluator/evaluate.py`, `evaluator/server.py`, `activate.sh`, or `test_problems/` remain outside of historical planning docs (`PLAN_FRAMEWORK.md`, `WEB_LISTENER_PLAN.md`) and `MIGRATING.md` (where they appear intentionally in the migration context).
 
 #### Implementation Summary
 
 **What was built:**
-- Complete `README.md` rewrite — install → quick start → how it works → problem structure → CLI reference → evaluator modes → examples → creating problems → design philosophy. All references now point to the CLI and new directory structure.
-- `MIGRATING.md` — step-by-step migration guide with before/after command mapping and documentation of automatic fallback behaviors.
-- Updated root `problem.yaml` template and `examples/README.md` to remove stale `test_problems/` references.
-
-**Key deviations from the original plan:**
-- `agent_instructions.md` template didn't need updates — it was already correct from Phase 3. The plan listed this as step 3 but it was a no-op.
-- CLI help text didn't need updates — all descriptions were already accurate. The plan listed this as step 4 but it was a no-op.
-- Added two unplanned updates: root `problem.yaml` template and `examples/README.md` both had stale `test_problems/` references that needed fixing.
-- `README.md` keeps a section about example problems with `activate.sh` usage, since that workflow is still valid for framework development. The plan said "remove all references" but `activate.sh` is still the way to try examples in the framework repo.
+- Complete `README.md` rewrite — install → quick start → how it works → problem structure → CLI reference → evaluator modes → examples → creating problems → design philosophy.
+- `MIGRATING.md` — step-by-step migration guide with before/after command mapping.
+- Updated `examples/README.md` — reference-only docs pointing to derby-examples for operational use.
 
 ### Phase 6: Extended Features (future, not blocking)
 

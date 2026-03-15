@@ -20,16 +20,7 @@ autoanything/
 │   ├── plotting.py           # Progress chart generation (matplotlib)
 │   ├── history.py            # SQLite history management
 │   └── git.py                # Git operations (subprocess wrappers)
-├── problem.yaml             # Problem definition (populated by activate.sh)
-├── agent_instructions.md    # Protocol for agents (populated by activate.sh)
-├── leaderboard.md           # Auto-updated scoreboard
-├── state/                   # MUTABLE — file(s) agents modify (populated by activate.sh)
-├── context/                 # READ-ONLY — background for agents (populated by activate.sh)
-├── evaluator/               # GITIGNORED — private scoring code + history DB
-│   └── score.sh              # Runs scoring, extracts metrics as JSON
-├── .autoanything/           # GITIGNORED — evaluator state (history.db)
-├── examples/                # Example optimization problems
-│   ├── activate.sh           # Switch repo to a problem
+├── examples/                # Reference problem structures (read-only)
 │   ├── rastrigin/            # 10-D function minimization (score: ~170 → 0)
 │   ├── tsp/                  # Traveling salesman, 20 cities (score: ~1914 → ~680)
 │   ├── packing/              # Rectangle packing, 12 rects (score: 13250 → ~6975)
@@ -42,11 +33,7 @@ autoanything/
 ```bash
 uv sync                                    # install dependencies
 
-# Activate a problem (copies files into root)
-bash examples/activate.sh rastrigin        # or: tsp, packing, gpt
-bash evaluator/score.sh                    # verify scoring works
-
-# Evaluator (run on the scoring machine, not by agents)
+# Evaluator (run from a problem directory, not by agents)
 autoanything evaluate                      # start the serial evaluation loop
 autoanything evaluate --baseline-only      # just establish the baseline score
 autoanything evaluate --push               # push leaderboard updates to origin
@@ -62,26 +49,24 @@ autoanything plot                         # chart from .autoanything/history.db
 autoanything plot --db path/to/history.db  # chart from a specific database
 autoanything plot -o chart.png            # save to a specific path
 
-# Simulated test run (generates progress chart, doesn't touch working tree)
-uv run examples/run_test.py rastrigin              # run with 15 submissions
-uv run examples/run_test.py tsp -n 20              # more submissions
-uv run examples/run_test.py packing --include-failures  # with crash submissions
+# Runnable examples with test harness: https://github.com/kousun12/derby-examples
 ```
 
 ## How Problems Work
 
-Every problem follows the same structure — a directory under `examples/` with:
+Every problem is a self-contained directory (typically its own git repo):
 
 ```
-examples/<name>/
+my-problem/
 ├── problem.yaml           # Problem definition (name, score direction, constraints)
 ├── agent_instructions.md  # Protocol for agents
 ├── state/*.py             # Mutable file(s) agents edit
 ├── context/*.py           # Read-only context
-└── evaluator/score.sh     # Scoring script (outputs JSON on last line)
+├── scoring/score.sh       # GITIGNORED — scoring script (outputs JSON on last line)
+└── .autoanything/         # GITIGNORED — evaluator state (history.db)
 ```
 
-`activate.sh` copies these into the repo root. The evaluator is problem-agnostic — it reads the score metric name from `problem.yaml` and delegates scoring to `score.sh`.
+The evaluator is problem-agnostic — it reads the score metric name from `problem.yaml` and delegates scoring to `score.sh`. Reference examples live in `examples/` in this repo; runnable problem repos live at [derby-examples](https://github.com/kousun12/derby-examples).
 
 ## Agent Protocol
 
