@@ -12,6 +12,7 @@ import time
 
 from autoanything.git import (
     git,
+    detect_default_branch,
     get_proposal_branches,
     get_branch_commit,
     get_head_commit,
@@ -28,6 +29,17 @@ from autoanything.leaderboard import export_leaderboard, export_history
 from autoanything.scoring import run_score, is_better
 
 
+def _resolve_base_branch(config, problem_dir: str) -> str:
+    """Return the base branch, falling back to detection if configured branch doesn't exist."""
+    base_branch = config.git.base_branch
+    result = git("branch", "--list", base_branch, cwd=problem_dir, check=False)
+    if not result.stdout.strip():
+        detected = detect_default_branch(cwd=problem_dir)
+        print(f"Branch '{base_branch}' not found, using '{detected}'")
+        return detected
+    return base_branch
+
+
 def establish_baseline(conn, problem_dir: str, config):
     """Run the baseline (current main) and record it.
 
@@ -39,7 +51,7 @@ def establish_baseline(conn, problem_dir: str, config):
     Returns:
         True if baseline was established, False on failure.
     """
-    base_branch = config.git.base_branch
+    base_branch = _resolve_base_branch(config, problem_dir)
     score_name = config.score.name
     timeout = config.score.timeout
     leaderboard_path = os.path.join(problem_dir, "leaderboard.md")
@@ -171,7 +183,7 @@ def run_evaluator(problem_dir: str, config, db_path: str,
     import sys
 
     direction = config.score.direction
-    base_branch = config.git.base_branch
+    base_branch = _resolve_base_branch(config, problem_dir)
     pattern = config.git.proposal_pattern
 
     conn = init_db(db_path)

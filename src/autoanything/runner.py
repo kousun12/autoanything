@@ -34,7 +34,8 @@ def run_local(problem_dir, config, db_path, agent_command,
         max_iterations: Stop after this many iterations (None = unlimited).
         max_consecutive_crashes: Stop after this many consecutive crashes.
     """
-    base_branch = config.git.base_branch
+    from autoanything.evaluator import _resolve_base_branch
+    base_branch = _resolve_base_branch(config, problem_dir)
     score_name = config.score.name
     timeout = config.score.timeout
     direction = config.score.direction

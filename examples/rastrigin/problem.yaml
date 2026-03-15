@@ -10,8 +10,5 @@ score:
   description: "Rastrigin function value — global minimum is 0.0 at the origin"
   bounded: true
 
-git:
-  base_branch: master
-
 constraints:
   - "Solution vector must have exactly 10 elements"

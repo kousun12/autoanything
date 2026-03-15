@@ -9,8 +9,5 @@ score:
   description: "Total Euclidean tour distance — lower is better"
   bounded: true
 
-git:
-  base_branch: master
-
 constraints:
   - "Tour must be a valid permutation of [0..19] (each city visited exactly once)"
