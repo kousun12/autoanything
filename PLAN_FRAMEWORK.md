@@ -180,14 +180,14 @@ The architectural choices that make AutoAnything elegant should not change:
 
 - **Git as the protocol.** Anything that can `git push` can be an agent. This is the project's best design decision. No custom APIs, no agent SDKs, no registration. Push a branch, get scored.
 - **Serial evaluation.** One proposal scored at a time. No race conditions, no stale comparisons. Simple and correct.
-- **Blind scoring.** Agents never see the scoring code. Same reason Kaggle keeps the test set private — it prevents overfitting to the test harness.
+- **Blind scoring.** Agents never see the scoring code. This prevents overfitting to the test harness — agents optimize the actual objective, not artifacts of how it's measured.
 - **score.sh → JSON.** The scoring interface is "run a shell script, get JSON on the last line." This is trivially implementable for any problem in any language. No framework-specific scoring API to learn.
 - **Leaderboard as markdown.** Human-readable, version-controlled, auto-updated. Agents can parse it, humans can read it on GitHub.
 - **SQLite history.** Lightweight, zero-config, portable. One file captures the full evaluation history.
 
 ## Blind Scoring: The Trust Model
 
-A core design goal of AutoAnything is that **agents never see the scoring code**. This is the same principle behind Kaggle's private test set: if optimizers can see the evaluation function, they will overfit to it. Blind scoring forces agents to optimize the actual objective, not artifacts of how it's measured.
+A core design goal of AutoAnything is that **agents never see the scoring code**. If optimizers can see the evaluation function, they will overfit to it. Blind scoring forces agents to optimize the actual objective, not artifacts of how it's measured.
 
 In the current repo, this guarantee is held together by a `.gitignore` entry. The scoring code lives in `evaluator/` in the same repo agents clone — it's only hidden because git doesn't track it. This works, but it's fragile. A misconfigured `.gitignore`, an accidental commit, or an agent with filesystem access to the evaluation machine breaks the wall.
 
@@ -209,7 +209,7 @@ That's it. No scoring code. Not gitignored scoring code — *no* scoring code, e
 
 ### What the evaluator operator has (local machine)
 
-The person running the evaluator (the "problem author" or "competition host") clones the same repo, then adds the scoring code locally:
+The person running the evaluator (the "problem author") clones the same repo, then adds the scoring code locally:
 
 ```
 my-problem/                     # cloned from the problem repo
@@ -251,20 +251,9 @@ The separation isn't enforced by access controls — it's a consequence of the s
 
 4. **`autoanything validate` checks the wall.** It warns if any files in `scoring/` are tracked by git, or if `.gitignore` doesn't exclude the scoring directory. This catches mistakes before they leak.
 
-### The Kaggle analogy
+### Why this matters
 
-This is exactly how Kaggle works:
-
-| Kaggle | AutoAnything |
-|--------|-------------|
-| Public dataset | `state/`, `context/` |
-| Private test set | `scoring/score.sh`, `scoring/test_data/` |
-| Submission (upload CSV) | Push a branch or open a PR |
-| Kaggle's scoring server | `autoanything evaluate` on the operator's machine |
-| Public leaderboard | `leaderboard.md` |
-| Competition rules | `problem.yaml`, `agent_instructions.md` |
-
-The difference: Kaggle is a centralized platform. AutoAnything is self-hosted, open, and git-native. Anyone can host a competition. Anyone (or any agent) can compete. The scoring is as private as you make it — all you need is a machine that can run `score.sh` and push leaderboard updates.
+The key difference from a competition model: AutoAnything is collaborative, not competitive. Each agent's proposal builds on the current best — it's closer to crowdsourced hill climbing than independent submissions. Blind scoring ensures agents optimize the real objective without gaming the evaluation function, while the shared state (each improvement merged into the base branch) means the population of agents collectively ratchets toward better solutions.
 
 ## What This Unlocks
 
@@ -303,7 +292,7 @@ Evaluator improvements, new CLI commands, bug fixes — all delivered without to
 
 ### Problem ecosystem
 
-People can publish problems as repos. The `autoanything` CLI is the common runtime. A community can form around shared problems, like Kaggle competitions but fully open and self-hosted.
+People can publish problems as repos. The `autoanything` CLI is the common runtime. A community can form around shared problems — each one a self-hosted optimization target that any agent can push to.
 
 ## What Happens to the Current Test Problems
 
@@ -525,7 +514,7 @@ Key conventions the tests lock in:
 - Phase 4 (migration/cleanup) scope is reduced: `test_problems/` rename is done, `evaluator/` scripts don't need git removal (never tracked). Remaining: decide on `activate.sh` future, migrate `run_test.py`/`plot_progress.py`.
 - Phase 5 (docs) is partially done: `CLAUDE.md` already updated. Remaining: `README.md` rewrite, `MIGRATING.md`.
 
-### Phase 3: Scaffolding and Init (polish)
+### Phase 3: Scaffolding and Init (polish) [DONE]
 
 **Goal:** Polish the `init` and `validate` commands (already functional from Phase 1). Add template files as separate resources.
 
@@ -533,25 +522,46 @@ Key conventions the tests lock in:
 
 **Steps:**
 
-1. Move template content from inline strings in `cli.py` to `src/autoanything/templates/` files:
-   - `problem.yaml` — with placeholder values and comments explaining each field.
-   - `agent_instructions.md` — generic protocol, references problem.yaml for specifics.
-   - `score.sh` — skeleton that shows the JSON output convention.
-   - `solution.py` — minimal example state file.
-   - `gitignore` — pre-configured to exclude `scoring/`, `.autoanything/`.
+1. Moved template content from inline strings in `cli.py` to `src/autoanything/templates/` package:
+   - `problem.yaml` — with `{{name}}`, `{{metric}}`, `{{direction}}` placeholders and explanatory comments for each field.
+   - `agent_instructions.md` — expanded protocol (9 steps instead of 5), references problem.yaml, context/, and leaderboard.md.
+   - `score.sh` — skeleton with JSON output convention and examples of additional metrics.
+   - `solution.py` — minimal example state file with guidance comments.
+   - `gitignore` — pre-configured to exclude `scoring/` and `.autoanything/`.
+   - `__init__.py` — makes templates a proper Python package for `importlib.resources`.
 
-2. Enhance `autoanything init <name>`:
-   - Initialize a git repo (`git init`) in the new directory.
-   - Print next-steps instructions after scaffolding.
+2. Enhanced `autoanything init <name>`:
+   - Templates loaded via `importlib.resources` and rendered with `{{key}}` placeholder substitution.
+   - Initializes a git repo (`git init -b main`) in the new directory.
+   - Prints next-steps instructions after scaffolding (edit files, validate, score).
 
-3. Implement `autoanything validate`:
+3. `autoanything validate` was already complete from Phase 1 — no changes needed:
    - Checks that `problem.yaml` exists and parses correctly.
    - Checks that all files listed in `state:` exist.
    - Checks that `score.sh` (or configured script) exists and is executable.
    - Checks that `.gitignore` excludes scoring directory.
+   - Warns if `scoring/` files are tracked by git.
    - Prints clear pass/fail with actionable error messages.
 
-**Validation:** `autoanything init test-problem && cd test-problem && autoanything validate` passes.
+**Validation:** `autoanything init test-problem && cd test-problem && autoanything validate` passes. 104/104 tests passing (up from 101 — added 3 tests for git init, next-steps output, and template rendering).
+
+#### Implementation Summary
+
+**What was built:**
+- `src/autoanything/templates/` package with 5 template files + `__init__.py` — templates are now separate, editable resources loaded at runtime via `importlib.resources`.
+- `_load_template()` and `_render_template()` helpers in `cli.py` — simple `{{key}}` substitution, no external templating library needed.
+- `git init -b main` runs automatically during `autoanything init`, so scaffolded problems are immediately git repositories.
+- Next-steps instructions printed after init, guiding users through the edit→validate→score workflow.
+- 3 new tests: `test_initializes_git_repo`, `test_prints_next_steps`, `test_templates_render_metric`.
+
+**Key deviations from the original plan:**
+- Used `{{key}}` placeholder syntax instead of Python f-strings or a templating library (Jinja2 etc.). This keeps templates as plain, readable files that can be edited without understanding Python string formatting. The `{{` / `}}` delimiters were chosen to avoid conflicts with YAML syntax and shell `${}`.
+- `validate` command was already complete and didn't need any changes. The plan listed it as step 3 ("Implement `autoanything validate`") but it was fully implemented in Phase 1 with all the described checks.
+- Templates are richer than the original inline strings — `agent_instructions.md` has 9 protocol steps (was 5), `score.sh` includes examples of additional metrics, `problem.yaml` has inline comments explaining each field.
+
+**What this means for downstream phases:**
+- Phase 4 (migration/cleanup) is unchanged — `activate.sh`, `run_test.py`, and `plot_progress.py` decisions remain.
+- Phase 5 (docs) can reference `src/autoanything/templates/` as the canonical source for problem structure documentation. The `agent_instructions.md` template is now comprehensive enough to serve as the template referenced in Phase 5 step 3.
 
 ### Phase 4: Migration and Cleanup
 
@@ -604,9 +614,5 @@ Key conventions the tests lock in:
 
 Ideas that become natural once the framework exists, but aren't needed for launch:
 
-- **`autoanything leaderboard --serve`**: Live-updating web leaderboard (the server already has FastAPI, add a simple HTML endpoint).
-- **Problem registries**: `autoanything clone <url>` that clones a problem repo and validates its structure.
-- **Agent helpers**: A small `autoanything-agent` package that agents can optionally install for utilities (parse leaderboard, read problem config, generate branch names).
-- **Multi-evaluator**: `autoanything evaluate --problems ./p1 ./p2 ./p3` to run evaluators for multiple problems in one process.
-- **Notifications**: Slack/Discord webhooks when a new best score is found.
-- **Scoring containers**: `autoanything evaluate --docker` to run score.sh in an isolated container (security for untrusted agent submissions).
+- **Scoring containers**: `autoanything evaluate --docker` to run score.sh in an isolated container. Without this, anyone accepting untrusted agent submissions is running arbitrary code unsandboxed on the evaluation machine.
+- **Notifications**: Slack/Discord webhooks when a new best score is found. Tiny to implement (single HTTP POST), but it's the difference between a tool you babysit and one you leave running overnight.

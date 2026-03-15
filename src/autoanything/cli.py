@@ -5,8 +5,9 @@ Provides commands: init, validate, score, evaluate, serve, history, leaderboard.
 
 import os
 import stat
+import subprocess
 import sys
-import textwrap
+from importlib import resources
 
 import click
 
@@ -16,6 +17,21 @@ from autoanything.problem import load_problem, ValidationError
 # ---------------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------------
+
+_TEMPLATES_PKG = "autoanything.templates"
+
+
+def _load_template(filename: str) -> str:
+    """Load a template file from the autoanything.templates package."""
+    return resources.files(_TEMPLATES_PKG).joinpath(filename).read_text()
+
+
+def _render_template(filename: str, **kwargs: str) -> str:
+    """Load a template and substitute {{key}} placeholders."""
+    text = _load_template(filename)
+    for key, value in kwargs.items():
+        text = text.replace("{{" + key + "}}", value)
+    return text
 
 
 def _resolve_db_path(problem_dir: str, db: str | None) -> str:
@@ -54,95 +70,53 @@ def init(name, parent_dir, metric, direction):
         click.echo(f"Error: directory '{problem_dir}' already exists.", err=True)
         sys.exit(1)
 
+    subs = {"name": name, "metric": metric, "direction": direction}
+
     os.makedirs(problem_dir)
     os.makedirs(os.path.join(problem_dir, "state"))
     os.makedirs(os.path.join(problem_dir, "context"))
     os.makedirs(os.path.join(problem_dir, "scoring"))
     os.makedirs(os.path.join(problem_dir, ".autoanything"))
 
-    # problem.yaml
+    # Write files from templates
     with open(os.path.join(problem_dir, "problem.yaml"), "w") as f:
-        f.write(textwrap.dedent(f"""\
-            name: {name}
-            description: >
-              Describe what agents are optimizing.
+        f.write(_render_template("problem.yaml", **subs))
 
-            state:
-              - state/solution.py
-
-            context: []
-
-            score:
-              name: {metric}
-              direction: {direction}
-              description: "Describe what this metric measures"
-              timeout: 900
-
-            git:
-              base_branch: main
-              proposal_pattern: "proposals/*"
-
-            constraints:
-              - "Must not modify files outside of state/"
-        """))
-
-    # state/solution.py
     with open(os.path.join(problem_dir, "state", "solution.py"), "w") as f:
-        f.write("# Solution file — agents modify this.\n")
+        f.write(_load_template("solution.py"))
 
-    # scoring/score.sh
     score_sh = os.path.join(problem_dir, "scoring", "score.sh")
     with open(score_sh, "w") as f:
-        f.write(textwrap.dedent(f"""\
-            #!/usr/bin/env bash
-            set -euo pipefail
-            # Scoring script — outputs JSON on the last line.
-            # The metric key must match score.name in problem.yaml.
-            echo '{{"{ metric}": 0.0}}'
-        """))
+        f.write(_render_template("score.sh", **subs))
     os.chmod(score_sh, os.stat(score_sh).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
-    # agent_instructions.md
     with open(os.path.join(problem_dir, "agent_instructions.md"), "w") as f:
-        f.write(textwrap.dedent(f"""\
-            # Agent Instructions
+        f.write(_render_template("agent_instructions.md", **subs))
 
-            ## Objective
-            Optimize the metric `{metric}` ({direction}).
-
-            ## Protocol
-            1. Pull the latest main branch.
-            2. Create a branch: `proposals/<your-name>/<description>`
-            3. Modify only the files listed under `state:` in `problem.yaml`.
-            4. Push your branch or open a PR targeting main.
-            5. The evaluator will score your submission and update the leaderboard.
-
-            ## Files
-            - `problem.yaml` — problem definition and constraints
-            - `state/` — files you can modify
-            - `context/` — read-only background information
-            - `leaderboard.md` — current scores and history
-        """))
-
-    # .gitignore
     with open(os.path.join(problem_dir, ".gitignore"), "w") as f:
-        f.write(textwrap.dedent("""\
-            # Private scoring code
-            scoring/
+        f.write(_load_template("gitignore"))
 
-            # Evaluator state
-            .autoanything/
-        """))
+    # Initialize a git repo
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=problem_dir, capture_output=True, check=True,
+    )
 
     click.echo(f"Created problem '{name}' in {problem_dir}")
+    click.echo("")
+    click.echo("Next steps:")
+    click.echo(f"  cd {problem_dir}")
+    click.echo("  # Edit problem.yaml — describe the problem, set constraints")
+    click.echo("  # Edit state/solution.py — set up the initial state")
+    click.echo("  # Edit scoring/score.sh — implement your scoring function")
+    click.echo("  autoanything validate    # check everything is wired up")
+    click.echo("  autoanything score       # run scoring once as a sanity check")
 
 
 @main.command()
 @click.option("--dir", "problem_dir", default=".", help="Problem directory to validate.")
 def validate(problem_dir):
     """Check that the problem directory is well-formed."""
-    import subprocess
-
     errors = []
     warnings = []
 

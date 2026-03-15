@@ -66,6 +66,29 @@ class TestInit:
         assert "accuracy" in content
         assert "maximize" in content
 
+    def test_initializes_git_repo(self, runner, tmp_path):
+        runner.invoke(cli, ["init", "my-problem", "--dir", str(tmp_path)])
+        assert (tmp_path / "my-problem" / ".git").is_dir()
+
+    def test_prints_next_steps(self, runner, tmp_path):
+        result = runner.invoke(cli, ["init", "my-problem", "--dir", str(tmp_path)])
+        assert "Next steps" in result.output
+        assert "autoanything validate" in result.output
+        assert "autoanything score" in result.output
+
+    def test_templates_render_metric(self, runner, tmp_path):
+        runner.invoke(cli, [
+            "init", "my-problem",
+            "--dir", str(tmp_path),
+            "--metric", "accuracy",
+            "--direction", "maximize",
+        ])
+        score_sh = (tmp_path / "my-problem" / "scoring" / "score.sh").read_text()
+        assert "accuracy" in score_sh
+        instructions = (tmp_path / "my-problem" / "agent_instructions.md").read_text()
+        assert "accuracy" in instructions
+        assert "maximize" in instructions
+
     def test_refuses_existing_directory(self, runner, tmp_path):
         (tmp_path / "my-problem").mkdir()
         result = runner.invoke(cli, ["init", "my-problem", "--dir", str(tmp_path)])
