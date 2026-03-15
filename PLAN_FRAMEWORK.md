@@ -80,7 +80,7 @@ All commands operate on the current directory by default (overridable with `--di
 ```
 src/autoanything/
 ├── __init__.py
-├── cli.py                  # CLI entry point (click or argparse)
+├── cli.py                  # CLI entry point (click)
 ├── evaluator.py            # polling evaluation loop
 ├── server.py               # webhook server (FastAPI)
 ├── scoring.py              # run score.sh, parse JSON output
@@ -103,9 +103,24 @@ pyyaml          # proper YAML parsing
 fastapi         # webhook server
 uvicorn         # ASGI server
 click           # CLI framework
+rich            # terminal formatting (tables, colors, progress)
 ```
 
-No numpy, no torch, no tiktoken. Problem-specific deps belong to the problem, not the framework.
+No numpy, no torch, no tiktoken. The current `pyproject.toml` bundles several problem-specific deps that belong to individual problems, not the framework:
+
+| Current dep | Used by | Framework needs it? |
+|-------------|---------|-------------------|
+| `numpy` | rastrigin, tsp, packing scoring | No |
+| `tiktoken` | gpt problem | No |
+| `kernels` | gpt problem | No |
+| `matplotlib` | `plot_progress.py` | No (move to `[project.optional-dependencies]` dev/examples group) |
+| `pandas` | `plot_progress.py` | No (same) |
+| `pyarrow` | pandas dep | No (same) |
+| `requests` | `server.py` GitHub API calls | Yes — keep |
+| `fastapi` | `server.py` | Yes — keep |
+| `uvicorn` | `server.py` | Yes — keep |
+
+Phase 2 step 5 removes the problem-specific deps and adds an `[project.optional-dependencies]` section for examples/dev.
 
 ## Configuration: `problem.yaml`
 
@@ -130,6 +145,7 @@ score:
   description: "Total cost"     # human-readable, shown on leaderboard
   timeout: 900                  # seconds before scoring is killed (default: 900)
   script: scoring/score.sh      # path to scoring script (default: scoring/score.sh)
+  bounded: true                 # whether the score has a known optimum (informational)
 
 # Git configuration
 git:
@@ -273,6 +289,11 @@ The `scoring/score.sh` convention is new, but the framework should also look for
 
 5. Update test problems' `problem.yaml` files to use the full schema (add `git:` section where needed).
 
+6. Establish `.autoanything/` as the evaluator state directory:
+   - Update `evaluate.py` to write `history.db` to `.autoanything/history.db` (create the directory if it doesn't exist).
+   - Fall back to `evaluator/history.db` if it already exists (migration path).
+   - Add `.autoanything/` to `.gitignore`.
+
 **Validation:** Run `run_test.py` for all three instant problems. Evaluator behavior should be identical.
 
 ### Phase 2: Extract the Package (the real refactor)
@@ -314,7 +335,7 @@ The `scoring/score.sh` convention is new, but the framework should also look for
 3. Extract `server.py` similarly — it already imports from `evaluate.py`, so it naturally becomes a thin layer over the extracted modules.
 
 4. Build the CLI (`cli.py`):
-   - Use `click` (or `argparse` to avoid the dep).
+   - Use `click` for command/arg parsing, `rich` for output formatting.
    - Each command loads `problem.yaml` from the current directory (or `--dir` override).
    - `autoanything evaluate` replaces `uv run evaluator/evaluate.py`.
    - `autoanything serve` replaces `uv run evaluator/server.py`.
@@ -324,15 +345,16 @@ The `scoring/score.sh` convention is new, but the framework should also look for
 
 5. Update `pyproject.toml`:
    - Add `[project.scripts]` entry point: `autoanything = "autoanything.cli:main"`.
-   - Move framework deps (fastapi, uvicorn, pyyaml) to main dependencies.
-   - Remove problem-specific deps (numpy, torch, tiktoken, etc.) from the framework.
-   - Add a `[project.optional-dependencies]` section for examples/dev.
+   - Keep framework deps: `pyyaml`, `fastapi`, `uvicorn`, `requests`.
+   - Remove problem-specific deps: `numpy`, `tiktoken`, `kernels` (these belong to individual problem repos).
+   - Move dev/example deps to `[project.optional-dependencies]`: `matplotlib`, `pandas`, `pyarrow` (used by `plot_progress.py` and examples).
+   - Remove the `[tool.uv.sources]` torch index configuration.
 
 6. Make evaluator state location configurable:
    - Default: `.autoanything/history.db` in the problem directory.
    - Configurable via `--db` flag or env var.
 
-7. Update `.gitignore` template to exclude `scoring/`, `.autoanything/`.
+7. Update `.gitignore` template to exclude `scoring/` (`.autoanything/` already added in Phase 1).
 
 **Validation:** `pip install -e .` in the repo, then `cd examples/rastrigin && autoanything evaluate --baseline-only` works.
 
