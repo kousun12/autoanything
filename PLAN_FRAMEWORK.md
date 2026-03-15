@@ -613,7 +613,7 @@ Key conventions the tests lock in:
 - The `plot_progress.py` standalone script is now a thin wrapper, so docs can point to either `autoanything plot` or `uv run examples/plot_progress.py`.
 - `CLAUDE.md` is already updated — Phase 5 only needs `README.md` rewrite and `MIGRATING.md`.
 
-### Phase 5: Documentation Update
+### Phase 5: Documentation Update [DONE]
 
 **Goal:** Rewrite remaining documentation to reflect the new installable-framework structure.
 
@@ -621,26 +621,46 @@ Key conventions the tests lock in:
 
 **Steps:**
 
-1. Rewrite `README.md`:
-   - Installation: `pip install autoanything` / `uv tool install autoanything`
-   - Quick start: `autoanything init`, edit files, `autoanything score`, `autoanything evaluate`
-   - Problem structure overview (what goes in a problem directory)
-   - CLI reference including `autoanything plot` for progress charts
-   - Link to `examples/` for reference problems
-   - Remove all references to `evaluator/evaluate.py`, `evaluator/server.py`
+1. Rewrote `README.md`:
+   - Added installation section (`pip install autoanything` / `uv tool install autoanything` / editable dev install).
+   - New quick start flow: `autoanything init` → edit files → `autoanything validate` → `autoanything score` → `autoanything evaluate`.
+   - Added problem structure overview showing the self-contained directory layout.
+   - Added full CLI reference table with all 9 commands.
+   - Added evaluator modes section (polling vs webhook) with CLI commands.
+   - Added "Creating your own problem" section referencing `autoanything init`.
+   - Removed all references to `evaluator/evaluate.py`, `evaluator/server.py`, and `test_problems/`.
+   - Kept the example problems section with a note about `activate.sh` for framework development.
 
-2. Add `MIGRATING.md` for anyone who forked the old structure:
-   - Move your problem files into their own directory
-   - Move `evaluator/score.sh` to `scoring/score.sh`
-   - Install `autoanything` and use CLI commands instead of running scripts directly
-   - Use `autoanything plot` instead of `python examples/plot_progress.py`
-   - The `evaluator/` directory at repo root is no longer needed
+2. Added `MIGRATING.md`:
+   - Before/after table mapping old commands to new CLI commands.
+   - Step-by-step migration: install package, move scoring code, update `problem.yaml`, update `.gitignore`, use CLI, history migration.
+   - Documented automatic fallback behaviors (e.g., `evaluator/score.sh` → `scoring/score.sh`, `evaluator/history.db` → `.autoanything/history.db`).
+   - "What stays the same" section reassuring users the protocol hasn't changed.
 
-3. Update `agent_instructions.md` template in `src/autoanything/templates/` to reference the CLI commands.
+3. `agent_instructions.md` template was already up to date — it references CLI commands and the correct protocol steps. No changes needed.
 
-4. Review and update any inline help text in CLI commands (`--help` output) for accuracy.
+4. Reviewed all CLI `--help` output — all descriptions are accurate and consistent with the README.
 
-**Validation:** All docs reference the new structure. No mentions of `evaluator/evaluate.py` or `evaluator/server.py` remain outside of `MIGRATING.md`.
+5. *(Additional)* Updated root `problem.yaml` template to reference `examples/activate.sh` instead of `test_problems/activate.sh` and added `autoanything init` as an option.
+
+6. *(Additional)* Updated `examples/README.md`:
+   - "Creating Your Own Problem" section now leads with `autoanything init` and shows the new directory structure.
+   - Replaced `plot_progress.py` standalone chart docs with `autoanything plot` CLI commands.
+
+**Validation:** 106/106 tests pass. No mentions of `evaluator/evaluate.py`, `evaluator/server.py`, or `test_problems/` remain outside of historical planning docs (`PLAN_FRAMEWORK.md`, `WEB_LISTENER_PLAN.md`) and `MIGRATING.md` (where they appear intentionally in the migration context).
+
+#### Implementation Summary
+
+**What was built:**
+- Complete `README.md` rewrite — install → quick start → how it works → problem structure → CLI reference → evaluator modes → examples → creating problems → design philosophy. All references now point to the CLI and new directory structure.
+- `MIGRATING.md` — step-by-step migration guide with before/after command mapping and documentation of automatic fallback behaviors.
+- Updated root `problem.yaml` template and `examples/README.md` to remove stale `test_problems/` references.
+
+**Key deviations from the original plan:**
+- `agent_instructions.md` template didn't need updates — it was already correct from Phase 3. The plan listed this as step 3 but it was a no-op.
+- CLI help text didn't need updates — all descriptions were already accurate. The plan listed this as step 4 but it was a no-op.
+- Added two unplanned updates: root `problem.yaml` template and `examples/README.md` both had stale `test_problems/` references that needed fixing.
+- `README.md` keeps a section about example problems with `activate.sh` usage, since that workflow is still valid for framework development. The plan said "remove all references" but `activate.sh` is still the way to try examples in the framework repo.
 
 ### Phase 6: Extended Features (future, not blocking)
 

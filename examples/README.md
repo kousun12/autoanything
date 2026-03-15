@@ -99,15 +99,27 @@ bash examples/activate.sh tsp
 
 ## Creating Your Own Problem
 
-Every problem is a directory with the same layout:
+The fastest way to create a new problem:
+
+```bash
+autoanything init my-problem --metric cost --direction minimize
+cd my-problem
+```
+
+This scaffolds the full directory structure. A problem directory has this layout:
 
 ```
-examples/<name>/
-├── problem.yaml           # Problem definition
-├── agent_instructions.md  # Protocol for agents
-├── state/*.py             # Mutable file(s) agents edit
-├── context/*.py           # Read-only context
-└── evaluator/score.sh     # Scoring script
+my-problem/
+├── problem.yaml            # Problem definition + framework config
+├── agent_instructions.md   # Protocol for agents
+├── state/                  # Mutable files agents edit
+│   └── solution.py
+├── context/                # Read-only background for agents
+├── scoring/                # GITIGNORED — private scoring code
+│   └── score.sh            # Outputs JSON on last line
+├── leaderboard.md          # Auto-updated by the evaluator
+└── .autoanything/          # GITIGNORED — local evaluator state
+    └── history.db
 ```
 
 Your `score.sh` must output a JSON object on its last line with at least the metric key named in `problem.yaml`. The evaluator reads the score name from `problem.yaml` and extracts it from this JSON — everything else is automatic.
@@ -147,11 +159,12 @@ Options:
 
 Requires `matplotlib` (add with `uv add matplotlib` if not already in deps).
 
-### Standalone chart generation
+### Progress charts
 
-`plot_progress.py` generates a progress chart from any evaluation `history.db` — works with both test runs and real evaluator runs.
+Generate a progress chart from evaluation history:
 
 ```bash
-uv run examples/plot_progress.py evaluator/history.db
-uv run examples/plot_progress.py evaluator/history.db -o chart.png --title "My Run"
+autoanything plot                                    # auto-detects DB location
+autoanything plot --db path/to/history.db             # specific database
+autoanything plot -o chart.png --title "My Run"       # custom output and title
 ```
