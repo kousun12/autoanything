@@ -156,6 +156,7 @@ def run_local(problem_dir, config, db_path, agent_command,
             subprocess.run(
                 agent_command, shell=True,
                 cwd=problem_dir, env=agent_env,
+                stdin=subprocess.DEVNULL,
             )
 
             # --- Detect what the agent changed ---

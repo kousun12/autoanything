@@ -378,13 +378,13 @@ def run(problem_dir, agent, iterations, max_crashes, db):
     )
 
 
-def _CLAUDE_PROMPT(problem_dir: str) -> str:
-    return f"""
-You are optimizing a problem.
-Read problem.yaml, context/, and agent_instructions.md to understand the task.
-Check leaderboard.md and history.md if they exist for context on past attempts and how they performed.
-The ONLY files that you can modify are in state/. Do NOT modify anything outside of the state/ directory.
-Be creative and try a different approach than previous attempts."""
+_CLAUDE_PROMPT = (
+    "You are optimizing a problem. "
+    "Read problem.yaml, context/, and agent_instructions.md to understand the task. "
+    "Check leaderboard.md and history.md if they exist for context on past attempts and how they performed. "
+    "The ONLY files that you can modify are in state/. Do NOT modify anything outside of the state/ directory. "
+    "Be creative and try a different approach than previous attempts."
+)
 
 _CLAUDE_DEFAULTS = {
     "rastrigin": 10,
@@ -564,7 +564,7 @@ if lines:
         if iterations is None:
             iterations = _DEMO_DEFAULTS[problem]
     elif use_claude:
-        agent_command = f"claude -p '{_CLAUDE_PROMPT(problem_dir=target_dir)}' --dangerously-skip-permissions"
+        agent_command = f"claude -p '{_CLAUDE_PROMPT}' --dangerously-skip-permissions"
         agent_label = "claude"
         if iterations is None:
             iterations = _CLAUDE_DEFAULTS[problem]
