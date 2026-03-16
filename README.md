@@ -6,6 +6,8 @@ This project started from Andrej Karpathy's [autoresearch](https://github.com/ka
 
 **Darwin Derby** is a generalization of the Karpathy loop. Use any set of files as the state. A scoring function is anything that outputs a number. As long as your score measures something you want to maximize or minimize, the Darwin Derby can auto-tune any metric across iterative or swarm experiments while you sleep.
 
+In the Darwin Derby, you can optimize anything. Even squishy things like "the quality of my essay", so long as you have an agent that can score it numerically on criteria.
+
 The name comes from a track on Vulpeck's excellent and exhuberant *[Hill Climber](https://www.youtube.com/watch?v=WrdsotPDrRg&list=PLW3_JXQjFF_1GtdRkZ45i3-rwJhVqpASc)* album.
 
 | GPT Training (val BPB) | Rastrigin Function (10-D) |
