@@ -3,13 +3,15 @@ Fibonacci performance optimization.
 
 The task is to make fib(n) as fast as possible while remaining correct.
 The scoring function validates correctness against known values, then
-benchmarks fib(20) and returns the median wall-clock time in seconds.
+benchmarks fib(36) and returns the median wall-clock time in seconds.
 
 Known Fibonacci values (0-indexed):
     fib(0)  = 0
     fib(1)  = 1
     fib(10) = 55
     fib(20) = 6765
+    fib(30) = 832040
+    fib(36) = 14930352
 
 Rules:
     - fib(n) must return the correct value for any non-negative integer n
@@ -18,8 +20,8 @@ Rules:
     - The function signature must remain: def fib(n) -> int
 """
 
-BENCHMARK_N = 20
-EXPECTED_FIB_20 = 6765
+BENCHMARK_N = 36
+EXPECTED_FIB_36 = 14930352
 
 CORRECTNESS_CASES = [
     (0, 0),
@@ -28,4 +30,6 @@ CORRECTNESS_CASES = [
     (5, 5),
     (10, 55),
     (20, 6765),
+    (30, 832040),
+    (36, 14930352),
 ]
