@@ -17,12 +17,12 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Response
 
-from autoanything.history import init_db, get_incumbent, update_incumbent, record_evaluation, is_evaluated
-from autoanything.leaderboard import export_leaderboard, export_history
-from autoanything.problem import load_problem
-from autoanything.scoring import run_score, is_better
+from darwinderby.history import init_db, get_incumbent, update_incumbent, record_evaluation, is_evaluated
+from darwinderby.leaderboard import export_leaderboard, export_history
+from darwinderby.problem import load_problem
+from darwinderby.scoring import run_score, is_better
 
-logger = logging.getLogger("autoanything.server")
+logger = logging.getLogger("darwinderby.server")
 
 
 def validate_pr_files(modified: list[str]) -> tuple[bool, str]:
@@ -98,7 +98,7 @@ def format_results_comment(
     if status == "crash":
         error_short = (error or "Unknown error")[:1500]
         return (
-            "## AutoAnything Evaluation\n\n"
+            "## Darwin Derby Evaluation\n\n"
             "**Result:** \U0001f4a5 Crash \u2014 closing\n\n"
             f"```\n{error_short}\n```"
         )
@@ -112,7 +112,7 @@ def format_results_comment(
         result_str = "\u274c Rejected \u2014 closing"
 
     comment = (
-        "## AutoAnything Evaluation\n\n"
+        "## Darwin Derby Evaluation\n\n"
         "| Metric | Value |\n"
         "|--------|-------|\n"
         f"| **Score** | {score:.6f} |\n"
@@ -149,13 +149,13 @@ def create_app(problem_dir: str, webhook_secret: str = None,
     Args:
         problem_dir: Path to the problem directory.
         webhook_secret: Optional GitHub webhook secret for signature verification.
-        db_path: Path to the SQLite database. Defaults to .autoanything/history.db.
+        db_path: Path to the SQLite database. Defaults to .derby/history.db.
         push: Whether to push leaderboard and merge results to origin.
 
     Returns:
         FastAPI application instance.
     """
-    from autoanything.git import git
+    from darwinderby.git import git
 
     # Load problem config
     try:
@@ -171,7 +171,7 @@ def create_app(problem_dir: str, webhook_secret: str = None,
         score_timeout = 900
 
     if db_path is None:
-        db_path = os.path.join(problem_dir, ".autoanything", "history.db")
+        db_path = os.path.join(problem_dir, ".derby", "history.db")
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
     # Evaluation queue
@@ -213,7 +213,7 @@ def create_app(problem_dir: str, webhook_secret: str = None,
             ok, msg = validate_pr_files(modified)
             if not ok:
                 comment = (
-                    "## AutoAnything Evaluation\n\n"
+                    "## Darwin Derby Evaluation\n\n"
                     "**Result:** \U0001f6ab Rejected \u2014 disallowed file changes\n\n" + msg
                 )
                 try:
@@ -232,7 +232,7 @@ def create_app(problem_dir: str, webhook_secret: str = None,
             gh("pr", "checkout", str(pr_number), cwd=problem_dir)
         except subprocess.CalledProcessError as e:
             comment = (
-                "## AutoAnything Evaluation\n\n"
+                "## Darwin Derby Evaluation\n\n"
                 "**Result:** \U0001f4a5 Could not checkout PR\n\n"
                 f"```\n{e.stderr[:500]}\n```"
             )
@@ -358,7 +358,7 @@ def create_app(problem_dir: str, webhook_secret: str = None,
                     try:
                         pr_comment(
                             pr_number,
-                            "## AutoAnything Evaluation\n\n"
+                            "## Darwin Derby Evaluation\n\n"
                             f"**Result:** \U0001f4a5 Internal error\n\n```\n{str(e)[:500]}\n```",
                             cwd=problem_dir,
                         )
@@ -424,7 +424,7 @@ def create_app(problem_dir: str, webhook_secret: str = None,
         startup_scan()
         yield
 
-    app = FastAPI(title="AutoAnything Web Evaluator", lifespan=lifespan)
+    app = FastAPI(title="Darwin Derby Web Evaluator", lifespan=lifespan)
 
     @app.get("/health")
     async def health():

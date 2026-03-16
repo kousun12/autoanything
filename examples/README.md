@@ -1,6 +1,6 @@
 # Example Problems
 
-Reference implementations of optimization problems for the AutoAnything framework. Each follows the same structure and scores via the same evaluator.
+Reference implementations of optimization problems for the Darwin Derby framework. Each follows the same structure and scores via the same evaluator.
 
 These examples live in the framework repo for reference. For operational use (running evaluators, accepting agent submissions), see [derby-examples](https://github.com/kousun12/derby-examples).
 
@@ -78,7 +78,7 @@ These examples live in the framework repo for reference. For operational use (ru
 | Difficulty | Algorithmic — exponential → linear or better |
 | Scoring time | ~1-5s |
 
-**Why it's good for testing:** State is actual code, not just data. The scoring function validates correctness before benchmarking, so agents can't cheat. Shows how AutoAnything works for performance optimization with integrity checks.
+**Why it's good for testing:** State is actual code, not just data. The scoring function validates correctness before benchmarking, so agents can't cheat. Shows how Darwin Derby works for performance optimization with integrity checks.
 
 ---
 
@@ -104,7 +104,7 @@ These examples live in the framework repo for reference. For operational use (ru
 ## Creating Your Own Problem
 
 ```bash
-maxx init my-problem --direction minimize
+derby init my-problem --direction minimize
 cd my-problem
 ```
 
@@ -120,7 +120,7 @@ my-problem/
 ├── scoring/                # GITIGNORED — private scoring code
 │   └── score.py            # Implement score() → dict
 ├── leaderboard.md          # Auto-updated by the evaluator
-└── .autoanything/          # GITIGNORED — local evaluator state
+└── .derby/          # GITIGNORED — local evaluator state
     └── history.db
 ```
 
@@ -129,7 +129,7 @@ Your `score.py` must define a `score()` function that returns a dict with at lea
 ## Progress Charts
 
 ```bash
-maxx plot                                    # auto-detects DB location
-maxx plot --db path/to/history.db             # specific database
-maxx plot -o chart.png --title "My Run"       # custom output and title
+derby plot                                    # auto-detects DB location
+derby plot --db path/to/history.db             # specific database
+derby plot -o chart.png --title "My Run"       # custom output and title
 ```

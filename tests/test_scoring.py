@@ -1,4 +1,4 @@
-"""Tests for autoanything.scoring — score.py execution and JSON parsing.
+"""Tests for darwinderby.scoring — score.py execution and JSON parsing.
 
 The scoring module runs scoring/score.py as a subprocess and extracts
 the metric value from the JSON output.
@@ -10,7 +10,7 @@ import textwrap
 
 import pytest
 
-from autoanything.scoring import run_score, parse_score_output, is_better
+from darwinderby.scoring import run_score, parse_score_output, is_better
 
 
 class TestParseScoreOutput:
@@ -138,7 +138,7 @@ class TestRunScorePy:
 
     def test_scoring_from_custom_dir(self, tmp_path):
         """run_score works when scoring lives outside the problem root."""
-        hidden = tmp_path / ".autoanything" / "_scoring"
+        hidden = tmp_path / ".derby" / "_scoring"
         hidden.mkdir(parents=True)
         (hidden / "score.py").write_text(textwrap.dedent("""\
             def score():
@@ -157,7 +157,7 @@ class TestRunScorePy:
 
     def test_custom_dir_imports_from_state(self, tmp_path):
         """Scoring from a custom dir can still import from state/."""
-        hidden = tmp_path / ".autoanything" / "_scoring"
+        hidden = tmp_path / ".derby" / "_scoring"
         hidden.mkdir(parents=True)
         (hidden / "score.py").write_text(textwrap.dedent("""\
             def score():

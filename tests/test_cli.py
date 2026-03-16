@@ -1,4 +1,4 @@
-"""Tests for autoanything.cli — CLI commands.
+"""Tests for darwinderby.cli — CLI commands.
 
 Tests use click.testing.CliRunner to invoke commands without subprocesses.
 """
@@ -9,7 +9,7 @@ import textwrap
 import pytest
 from click.testing import CliRunner
 
-from autoanything.cli import main as cli
+from darwinderby.cli import main as cli
 
 
 @pytest.fixture
@@ -18,7 +18,7 @@ def runner():
 
 
 class TestInit:
-    """maxx init <name> scaffolds a new problem directory."""
+    """derby init <name> scaffolds a new problem directory."""
 
     def test_creates_directory(self, runner, tmp_path):
         result = runner.invoke(cli, ["init", "my-problem", "--dir", str(tmp_path)])
@@ -50,7 +50,7 @@ class TestInit:
         assert gitignore.exists()
         content = gitignore.read_text()
         assert "scoring/" in content
-        assert ".autoanything/" in content
+        assert ".derby/" in content
 
     def test_creates_agent_instructions(self, runner, tmp_path):
         runner.invoke(cli, ["init", "my-problem", "--dir", str(tmp_path)])
@@ -74,7 +74,7 @@ class TestInit:
     def test_prints_next_steps(self, runner, tmp_path):
         result = runner.invoke(cli, ["init", "my-problem", "--dir", str(tmp_path)])
         assert "Next steps" in result.output
-        assert "maxx validate" in result.output
+        assert "derby validate" in result.output
         assert "score.py" in result.output
 
     def test_refuses_existing_directory(self, runner, tmp_path):
@@ -84,7 +84,7 @@ class TestInit:
 
 
 class TestValidate:
-    """maxx validate checks problem directory structure."""
+    """derby validate checks problem directory structure."""
 
     def test_valid_problem_passes(self, runner, problem_dir):
         result = runner.invoke(cli, ["validate", "--dir", str(problem_dir)])
@@ -121,7 +121,7 @@ class TestValidate:
         subprocess.run(["git", "config", "user.name", "T"], cwd=str(problem_dir),
                        check=True, capture_output=True)
         # Remove scoring from gitignore so we can track it
-        (problem_dir / ".gitignore").write_text(".autoanything/\n")
+        (problem_dir / ".gitignore").write_text(".derby/\n")
         subprocess.run(["git", "add", "-A"], cwd=str(problem_dir), check=True,
                        capture_output=True)
         subprocess.run(["git", "commit", "-m", "init"], cwd=str(problem_dir), check=True,
@@ -139,7 +139,7 @@ class TestValidate:
 
 
 class TestScore:
-    """maxx score runs scoring once and prints the result."""
+    """derby score runs scoring once and prints the result."""
 
     def test_runs_and_prints_score(self, runner, problem_dir):
         result = runner.invoke(cli, ["score", "--dir", str(problem_dir)])
@@ -153,7 +153,7 @@ class TestScore:
 
 
 class TestHistory:
-    """maxx history prints evaluation history."""
+    """derby history prints evaluation history."""
 
     def test_empty_history(self, runner, problem_dir):
         result = runner.invoke(cli, ["history", "--dir", str(problem_dir)])
@@ -161,8 +161,8 @@ class TestHistory:
 
     def test_shows_evaluations(self, runner, problem_dir):
         # Pre-populate the history db
-        from autoanything.history import init_db, record_evaluation
-        db_path = str(problem_dir / ".autoanything" / "history.db")
+        from darwinderby.history import init_db, record_evaluation
+        db_path = str(problem_dir / ".derby" / "history.db")
         conn = init_db(db_path)
         record_evaluation(conn, "abc", "master", 100.0, "baseline", "baseline", 1.0)
         record_evaluation(conn, "def", "proposals/a", 80.0, "accepted", "improved", 2.0)
@@ -175,11 +175,11 @@ class TestHistory:
 
 
 class TestLeaderboard:
-    """maxx leaderboard regenerates leaderboard.md."""
+    """derby leaderboard regenerates leaderboard.md."""
 
     def test_generates_leaderboard(self, runner, problem_dir):
-        from autoanything.history import init_db, record_evaluation, update_incumbent
-        db_path = str(problem_dir / ".autoanything" / "history.db")
+        from darwinderby.history import init_db, record_evaluation, update_incumbent
+        db_path = str(problem_dir / ".derby" / "history.db")
         conn = init_db(db_path)
         record_evaluation(conn, "abc", "master", 100.0, "baseline", "baseline", 1.0)
         update_incumbent(conn, "abc", 100.0)
@@ -191,7 +191,7 @@ class TestLeaderboard:
 
 
 class TestPlot:
-    """maxx plot generates a progress chart."""
+    """derby plot generates a progress chart."""
 
     def test_no_history_fails(self, runner, problem_dir):
         result = runner.invoke(cli, ["plot", "--dir", str(problem_dir)])

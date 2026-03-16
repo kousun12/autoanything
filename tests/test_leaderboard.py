@@ -1,4 +1,4 @@
-"""Tests for autoanything.leaderboard — leaderboard.md and history.md rendering.
+"""Tests for darwinderby.leaderboard — leaderboard.md and history.md rendering.
 
 The leaderboard module reads from the history database and produces
 markdown files: leaderboard.md (top scores) and history.md (recent attempts).
@@ -6,8 +6,8 @@ markdown files: leaderboard.md (top scores) and history.md (recent attempts).
 
 import pytest
 
-from autoanything.leaderboard import export_leaderboard, export_history
-from autoanything.history import init_db, record_evaluation, update_incumbent
+from darwinderby.leaderboard import export_leaderboard, export_history
+from darwinderby.history import init_db, record_evaluation, update_incumbent
 
 
 @pytest.fixture

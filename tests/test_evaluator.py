@@ -1,4 +1,4 @@
-"""Tests for autoanything.evaluator — the polling evaluation loop.
+"""Tests for darwinderby.evaluator — the polling evaluation loop.
 
 The evaluator module orchestrates scoring: it finds pending proposals,
 scores them, merges improvements, and updates the leaderboard. These
@@ -10,11 +10,11 @@ import os
 import pytest
 from unittest.mock import patch, MagicMock
 
-from autoanything.evaluator import (
+from darwinderby.evaluator import (
     evaluate_proposal,
     establish_baseline,
 )
-from autoanything.history import init_db, get_incumbent, update_incumbent, record_evaluation
+from darwinderby.history import init_db, get_incumbent, update_incumbent, record_evaluation
 
 
 @pytest.fixture
@@ -36,11 +36,11 @@ def _make_config(**overrides):
 
 
 # Patch targets: the evaluator imports git helpers and scoring from their
-# source modules, so we patch at the point of use in autoanything.evaluator.
-GIT_PATCH = "autoanything.evaluator.git"
-HEAD_PATCH = "autoanything.evaluator.get_head_commit"
-MSG_PATCH = "autoanything.evaluator.get_commit_message"
-SCORE_PATCH = "autoanything.evaluator.run_score"
+# source modules, so we patch at the point of use in darwinderby.evaluator.
+GIT_PATCH = "darwinderby.evaluator.git"
+HEAD_PATCH = "darwinderby.evaluator.get_head_commit"
+MSG_PATCH = "darwinderby.evaluator.get_commit_message"
+SCORE_PATCH = "darwinderby.evaluator.run_score"
 
 
 class TestEstablishBaseline:

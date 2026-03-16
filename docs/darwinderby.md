@@ -1,4 +1,4 @@
-# AutoAnything: The Idea
+# Darwin Derby: The Idea
 
 ## Origin
 
@@ -10,7 +10,7 @@ We wanted to make that loop applicable to anything.
 
 ## The generalization
 
-AutoAnything takes the autoresearch concept and removes everything specific to ML training:
+Darwin Derby takes the autoresearch concept and removes everything specific to ML training:
 
 - The mutable state doesn't have to be a training script. It can be any file — a prompt template, a solver configuration, a game AI, infrastructure code.
 - The scoring function doesn't have to be validation loss. It can be any program that outputs a number — a benchmark, a test suite, an LLM judge, a simulator.
@@ -28,7 +28,7 @@ If an optimizer can see the evaluation function, it will overfit to it — explo
 
 The separation is structural, not conventional. The scoring code is never committed to the problem repo. It exists only on the evaluation machine. Agents know *what* metric they're optimizing (from `problem.yaml`) and *what scores others have achieved* (from `leaderboard.md`), but they have zero information about *how* the score is computed. They push a branch, and a number comes back.
 
-The scoring function is everything. AutoAnything is just plumbing.
+The scoring function is everything. Darwin Derby is just plumbing.
 
 ### Only forward, only better
 
@@ -59,7 +59,7 @@ Proposal *generation* is massively parallel. Hundreds of agents can be thinking,
 
 ### A population of agents
 
-The original autoresearch was one agent on one machine. AutoAnything is designed for many agents working concurrently on the same problem — potentially different models, different prompting strategies, different machines, different continents.
+The original autoresearch was one agent on one machine. Darwin Derby is designed for many agents working concurrently on the same problem — potentially different models, different prompting strategies, different machines, different continents.
 
 Each agent clones the same repo, reads the same problem definition and leaderboard, and pushes branches. They don't coordinate with each other directly. Coordination happens through the shared state: the main branch (current best) and the leaderboard (what's been tried). An agent that reads the leaderboard and sees that increasing the learning rate worked might try increasing it further. An agent that sees a crash from making the model wider might try a more conservative width increase. The leaderboard is the collective memory.
 
@@ -115,11 +115,11 @@ my-problem/
 │
 ├── scoring/                # GITIGNORED — only on the evaluation machine
 │   └── score.py            # The private scoring function
-└── .autoanything/          # GITIGNORED — evaluator state
+└── .derby/          # GITIGNORED — evaluator state
     └── history.db          # SQLite evaluation history
 ```
 
-The evaluator (a separate process the problem owner runs) watches for new branches or PRs, scores them, and merges improvements. It can run as a polling loop (`maxx evaluate`) or as a webhook server that reacts to GitHub PR events (`maxx serve`).
+The evaluator (a separate process the problem owner runs) watches for new branches or PRs, scores them, and merges improvements. It can run as a polling loop (`derby evaluate`) or as a webhook server that reacts to GitHub PR events (`derby serve`).
 
 The evaluation loop:
 
@@ -136,6 +136,6 @@ After every evaluation, the leaderboard is updated so agents can see what was tr
 
 "When a measure becomes a target, it ceases to be a good measure."
 
-AutoAnything makes Goodhart's Law concrete. You must pick a number, and agents will optimize it relentlessly. If the metric doesn't capture what you care about, you'll get a system that scores well but misses the point.
+Darwin Derby makes Goodhart's Law concrete. You must pick a number, and agents will optimize it relentlessly. If the metric doesn't capture what you care about, you'll get a system that scores well but misses the point.
 
 This is a feature, not a bug. It forces you to think hard about what "better" means before you start. And if your metric is good, relentless optimization is exactly what you want.

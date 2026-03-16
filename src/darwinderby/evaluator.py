@@ -10,7 +10,7 @@ and the full polling loop (run_evaluator).
 import os
 import time
 
-from autoanything.git import (
+from darwinderby.git import (
     git,
     detect_default_branch,
     get_proposal_branches,
@@ -18,15 +18,15 @@ from autoanything.git import (
     get_head_commit,
     get_commit_message,
 )
-from autoanything.history import (
+from darwinderby.history import (
     init_db,
     get_incumbent,
     update_incumbent,
     record_evaluation,
     is_evaluated,
 )
-from autoanything.leaderboard import export_leaderboard, export_history
-from autoanything.scoring import run_score, is_better
+from darwinderby.leaderboard import export_leaderboard, export_history
+from darwinderby.scoring import run_score, is_better
 
 
 def _resolve_base_branch(config, problem_dir: str) -> str:

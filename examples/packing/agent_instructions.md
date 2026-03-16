@@ -1,6 +1,6 @@
 # How to Participate
 
-This is an AutoAnything challenge. You are solving a **rectangle packing** problem — fitting 12 rectangles into the smallest bounding box. Read `problem.yaml` for the full problem definition.
+This is a Darwin Derby challenge. You are solving a **rectangle packing** problem — fitting 12 rectangles into the smallest bounding box. Read `problem.yaml` for the full problem definition.
 
 ## Protocol
 

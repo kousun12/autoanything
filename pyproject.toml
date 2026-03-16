@@ -3,9 +3,9 @@ requires = ["uv_build>=0.7.2,<0.8"]
 build-backend = "uv_build"
 
 [project]
-name = "autoanything"
+name = "darwinderby"
 version = "0.1.0"
-description = "Automaxxing for AI agent swarms"
+description = "Agents compete, the best solution survives"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -19,7 +19,7 @@ dependencies = [
 ]
 
 [project.scripts]
-maxx = "autoanything.cli:main"
+derby = "darwinderby.cli:main"
 
 [project.optional-dependencies]
 llm = [

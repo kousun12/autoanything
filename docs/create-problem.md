@@ -1,6 +1,6 @@
-# Create an AutoAnything Problem
+# Create a Darwin Derby Problem
 
-This guide walks you through turning any optimization objective into a live AutoAnything problem — a standalone GitHub repo that agents can clone, improve, and push branches to.
+This guide walks you through turning any optimization objective into a live Darwin Derby problem — a standalone GitHub repo that agents can clone, improve, and push branches to.
 
 The whole process takes about five minutes.
 
@@ -10,18 +10,18 @@ The whole process takes about five minutes.
 2. **A scoring function.** A Python function that evaluates the current state and returns a dict with a number. Can be anything — run a benchmark, call an API, score with an LLM, compute a loss.
 3. **A direction.** Is lower better (minimize) or higher better (maximize)?
 
-That's it. AutoAnything handles the rest: watching for proposals, scoring them, keeping improvements, updating the leaderboard.
+That's it. Darwin Derby handles the rest: watching for proposals, scoring them, keeping improvements, updating the leaderboard.
 
-## Step 1: Install AutoAnything
+## Step 1: Install Darwin Derby
 
 ```bash
-uv tool install autoanything
+uv tool install darwinderby
 ```
 
 ## Step 2: Scaffold the problem
 
 ```bash
-maxx init my-problem --direction minimize
+derby init my-problem --direction minimize
 cd my-problem
 ```
 
@@ -36,8 +36,8 @@ my-problem/
 ├── context/                # Read-only background for agents — add files here
 ├── scoring/
 │   └── score.py            # Private scoring function — implement this
-├── .gitignore              # Pre-configured to hide scoring/, .autoanything/, __pycache__/
-└── .autoanything/           # Evaluator state (created automatically)
+├── .gitignore              # Pre-configured to hide scoring/, .derby/, __pycache__/
+└── .derby/           # Evaluator state (created automatically)
 ```
 
 A git repo is already initialized.
@@ -122,10 +122,10 @@ Optionally add read-only context files to `context/` — background information,
 
 ```bash
 # Check the structure is valid
-maxx validate
+derby validate
 
 # Run scoring once to make sure it works
-maxx score
+derby score
 ```
 
 Fix any errors until both commands pass.
@@ -151,10 +151,10 @@ On the machine with the scoring code:
 
 ```bash
 # Establish the baseline score (scores the current state on main)
-maxx evaluate --baseline-only
+derby evaluate --baseline-only
 
 # Start the evaluation loop — watches for proposal branches
-maxx evaluate --push
+derby evaluate --push
 ```
 
 The `--push` flag pushes leaderboard updates back to the repo so agents can see scores.
@@ -166,8 +166,8 @@ Leave this running. It will poll for new `proposals/*` branches, score each one 
 For faster response to PRs instead of polling:
 
 ```bash
-maxx evaluate --baseline-only
-maxx serve --push --port 8000
+derby evaluate --baseline-only
+derby serve --push --port 8000
 ```
 
 Then configure a GitHub webhook on your repo:
@@ -209,28 +209,28 @@ The pattern is always the same: mutable state, a number, a direction.
 - **Start with a fast scoring function.** If scoring takes 5 seconds instead of 5 minutes, agents get 60x more attempts per hour. Fast iteration beats perfect evaluation.
 - **Provide rich context.** The more agents understand about *why* the problem exists and *what matters*, the better their proposals will be. Put background, examples, and relevant docs in `context/`.
 - **Check the leaderboard.** `leaderboard.md` is the collective memory. It shows what worked, what didn't, and by how much. Agents read it. You should too.
-- **The scoring function is everything.** AutoAnything is just plumbing. The quality of your scoring function is the ceiling on the quality of results. Invest time in making it measure what you actually care about.
+- **The scoring function is everything.** Darwin Derby is just plumbing. The quality of your scoring function is the ceiling on the quality of results. Invest time in making it measure what you actually care about.
 
 ## Quick reference
 
 ```bash
 # Scaffold
-maxx init <name> --direction <min|max>
+derby init <name> --direction <min|max>
 
 # Develop
-maxx validate          # check structure
-maxx score             # run scoring once
+derby validate          # check structure
+derby score             # run scoring once
 
 # Publish
 git add -A && git commit -m "Initial problem"
 gh repo create <name> --public --source . --push
 
 # Evaluate
-maxx evaluate --baseline-only
-maxx evaluate --push
+derby evaluate --baseline-only
+derby evaluate --push
 
 # Monitor
-maxx history           # print recent evaluations
-maxx plot              # generate progress chart
-maxx leaderboard       # regenerate leaderboard.md
+derby history           # print recent evaluations
+derby plot              # generate progress chart
+derby leaderboard       # regenerate leaderboard.md
 ```

@@ -1,10 +1,10 @@
-# AutoAnything
+# Darwin Derby
 
 This project started from Andrej Karpathy's [autoresearch](https://github.com/karpathy/autoresearch) — a single AI agent in a loop, optimizing a GPT training script against validation bits-per-byte on one GPU. The agent would modify `train.py`, run training for five minutes, check the score, and keep the change if it improved. Simple evolutionary search powered by an LLM instead of random mutations.
 
 ![ralph-science](images/ralph-science.png)
 
-**AutoAnything** generalizes that loop. The mutable state can be any set of files. The scoring function can be any program that outputs a number. And agents can be anything that can update files — Claude Code, Codex, Cursor, a human with vim, a shell script. You define the scoring function and a direction. AutoAnything automaxxes your black-box score while you sleep.
+**Darwin Derby** generalizes that loop. The mutable state can be any set of files. The scoring function can be any program that outputs a number. And agents can be anything that can update files — Claude Code, Codex, Cursor, a human with vim, a shell script. You define the scoring function and a direction. Darwin Derby automaxxes your black-box score while you sleep.
 
 | GPT Training (val BPB) | Rastrigin Function (10-D) |
 |:---:|:---:|
@@ -16,12 +16,12 @@ This project started from Andrej Karpathy's [autoresearch](https://github.com/ka
 
 ## Install
 
-> **Note:** The Python package is called `autoanything`. The CLI command it installs is `maxx`.
+> **Note:** The Python package is called `darwinderby`. The CLI command it installs is `derby`.
 
 From PyPI:
 
 ```bash
-uv tool install autoanything[llm]
+uv tool install darwinderby[llm]
 ```
 
 From source:
@@ -37,15 +37,15 @@ uv tool install -e ".[llm]"
 Try an example problem in one command:
 
 ```bash
-maxx try fib              # built-in demo agent, generates progress chart
-maxx try rastrigin --claude  # use Claude as the agent
+derby try fib              # built-in demo agent, generates progress chart
+derby try rastrigin --claude  # use Claude as the agent
 ```
 
 Or create your own problem:
 
 ```bash
 # Create a new problem
-maxx init my-problem --direction minimize
+derby init my-problem --direction minimize
 cd my-problem
 
 # Edit the scaffolded files
@@ -54,13 +54,13 @@ cd my-problem
 #   scoring/score.py   — implement your score() function
 
 # Check everything is wired up
-maxx validate
+derby validate
 
 # Run scoring once as a sanity check
-maxx score
+derby score
 
 # Run a local optimization loop — single machine, one agent
-maxx run -a "claude -p 'read agent_instructions.md and improve the solution'"
+derby run -a "claude -p 'read agent_instructions.md and improve the solution'"
 ```
 
 The `run` command handles everything: it runs your agent, scores the result, keeps improvements, updates the leaderboard, and loops. The scoring directory is hidden from the agent during execution.
@@ -77,7 +77,7 @@ flowchart TD
     revert --> agent
 ```
 
-`maxx run` handles the entire loop: it invokes your agent, scores the result, keeps improvements, reverts failures, updates the leaderboard, and repeats. The scoring directory is hidden from the agent during execution — agents never see the scoring code. The agent can be any command — a shell script, a Python program, a call to Claude.
+`derby run` handles the entire loop: it invokes your agent, scores the result, keeps improvements, reverts failures, updates the leaderboard, and repeats. The scoring directory is hidden from the agent during execution — agents never see the scoring code. The agent can be any command — a shell script, a Python program, a call to Claude.
 
 To scale to multiple agents working in parallel, you can use the [git-based evaluator](#scaling-with-git) instead — agents push proposal branches and the evaluator scores and merges them.
 
@@ -95,7 +95,7 @@ my-problem/
 ├── scoring/                # GITIGNORED — private scoring code
 │   └── score.py            # Implement score() → dict
 ├── leaderboard.md          # Auto-updated by the evaluator
-└── .autoanything/          # GITIGNORED — local evaluator state
+└── .derby/                 # GITIGNORED — local evaluator state
     └── history.db          # SQLite evaluation history
 ```
 
@@ -109,7 +109,7 @@ flowchart LR
     end
     subgraph hidden ["Agents Never See"]
         E["scoring/score.py"]
-        F[".autoanything/history.db"]
+        F[".derby/history.db"]
     end
     B -->|"modified"| E
     E -->|"results"| D
@@ -121,18 +121,18 @@ The `scoring/` directory is gitignored and hidden from agents during execution. 
 
 | Command | Description |
 |---------|-------------|
-| `maxx try <problem>` | Try an example problem (demo agent, generates chart) |
-| `maxx try <problem> --claude` | Try an example with Claude as the agent |
-| `maxx init <name>` | Scaffold a new problem directory |
-| `maxx validate` | Check that the problem directory is well-formed |
-| `maxx score` | Run `scoring/score.py` once and print the result |
-| `maxx run -a "<cmd>"` | Run the local optimization loop with an agent command |
-| `maxx evaluate` | Start the polling evaluator (watches for proposal branches) |
-| `maxx evaluate --baseline-only` | Establish baseline score and exit |
-| `maxx serve` | Start the webhook server (receives PR events) |
-| `maxx history` | Print evaluation history from the DB |
-| `maxx leaderboard` | Regenerate `leaderboard.md` from history |
-| `maxx plot` | Generate a progress chart from evaluation history |
+| `derby try <problem>` | Try an example problem (demo agent, generates chart) |
+| `derby try <problem> --claude` | Try an example with Claude as the agent |
+| `derby init <name>` | Scaffold a new problem directory |
+| `derby validate` | Check that the problem directory is well-formed |
+| `derby score` | Run `scoring/score.py` once and print the result |
+| `derby run -a "<cmd>"` | Run the local optimization loop with an agent command |
+| `derby evaluate` | Start the polling evaluator (watches for proposal branches) |
+| `derby evaluate --baseline-only` | Establish baseline score and exit |
+| `derby serve` | Start the webhook server (receives PR events) |
+| `derby history` | Print evaluation history from the DB |
+| `derby leaderboard` | Regenerate `leaderboard.md` from history |
+| `derby plot` | Generate a progress chart from evaluation history |
 
 All commands operate on the current directory by default (overridable with `--dir`).
 
@@ -141,27 +141,27 @@ All commands operate on the current directory by default (overridable with `--di
 The default way to run. Single machine, one agent, fully automated:
 
 ```bash
-maxx run -a "./my_agent.sh"                           # run until stopped
-maxx run -a "python optimize.py" -n 50                # limit to 50 iterations
-maxx run -a "claude -p 'improve the solution'" -n 10  # use any command as the agent
+derby run -a "./my_agent.sh"                           # run until stopped
+derby run -a "python optimize.py" -n 50                # limit to 50 iterations
+derby run -a "claude -p 'improve the solution'" -n 10  # use any command as the agent
 ```
 
 ### Progress charts
 
 ```bash
-maxx plot                         # chart from .autoanything/history.db
-maxx plot --db path/to/history.db  # chart from a specific database
-maxx plot -o chart.png            # save to a specific path
+derby plot                         # chart from .derby/history.db
+derby plot --db path/to/history.db  # chart from a specific database
+derby plot -o chart.png            # save to a specific path
 ```
 
 ## Running agents
 
-An agent is any command that reads the problem and modifies files in `state/`. Point it at the problem directory and let `maxx run` handle the rest:
+An agent is any command that reads the problem and modifies files in `state/`. Point it at the problem directory and let `derby run` handle the rest:
 
 ```bash
-maxx run -a "claude -p 'read agent_instructions.md and improve the solution'" -n 10
-maxx run -a "./my_agent.sh"
-maxx run -a "python optimize.py" -n 50
+derby run -a "claude -p 'read agent_instructions.md and improve the solution'" -n 10
+derby run -a "./my_agent.sh"
+derby run -a "python optimize.py" -n 50
 ```
 
 ### Agent environment variables
@@ -170,11 +170,11 @@ The framework sets these environment variables before each agent invocation:
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `AUTOANYTHING_ITERATION` | Current iteration number (1-indexed) | `3` |
-| `AUTOANYTHING_SCORE` | Current best score | `169.743` |
-| `AUTOANYTHING_DIRECTION` | Optimization direction | `minimize` |
-| `AUTOANYTHING_METRIC` | Name of the score metric | `score` |
-| `AUTOANYTHING_PROBLEM` | Problem name from `problem.yaml` | `rastrigin` |
+| `DERBY_ITERATION` | Current iteration number (1-indexed) | `3` |
+| `DERBY_SCORE` | Current best score | `169.743` |
+| `DERBY_DIRECTION` | Optimization direction | `minimize` |
+| `DERBY_METRIC` | Name of the score metric | `score` |
+| `DERBY_PROBLEM` | Problem name from `problem.yaml` | `rastrigin` |
 
 ### Writing a custom agent
 
@@ -185,7 +185,7 @@ A minimal shell script agent:
 ```bash
 #!/bin/bash
 # agent.sh — read the current score, tweak state/solution.py
-echo "Iteration $AUTOANYTHING_ITERATION, current best: $AUTOANYTHING_SCORE"
+echo "Iteration $DERBY_ITERATION, current best: $DERBY_SCORE"
 
 python3 -c "
 import random
@@ -198,13 +198,13 @@ with open('state/solution.py', 'w') as f:
 ```
 
 ```bash
-maxx run -a "./agent.sh" -n 20
+derby run -a "./agent.sh" -n 20
 ```
 
 For AI-powered agents, the command can be anything that reads the problem and modifies state:
 
 ```bash
-maxx run -a "claude -p 'read agent_instructions.md and improve the solution'" -n 10
+derby run -a "claude -p 'read agent_instructions.md and improve the solution'" -n 10
 ```
 
 ## Example problems
@@ -230,16 +230,16 @@ For running many agents in parallel — a swarm — you can use the git-based ev
 **Polling** — watches for proposal branches:
 
 ```bash
-maxx evaluate --baseline-only   # establish baseline
-maxx evaluate                   # start evaluation loop
-maxx evaluate --push            # push leaderboard updates to origin
+derby evaluate --baseline-only   # establish baseline
+derby evaluate                   # start evaluation loop
+derby evaluate --push            # push leaderboard updates to origin
 ```
 
 **Webhook** — receives GitHub PR events via HTTP:
 
 ```bash
-maxx evaluate --baseline-only   # establish baseline first
-maxx serve --push               # start webhook server
+derby evaluate --baseline-only   # establish baseline first
+derby serve --push               # start webhook server
 
 # Configure the GitHub webhook:
 #   URL: https://<your-domain>/webhook
@@ -255,17 +255,17 @@ Evaluation is serial — one proposal at a time, so the comparison is always cle
 The fastest way:
 
 ```bash
-maxx init my-problem --direction minimize
+derby init my-problem --direction minimize
 cd my-problem
 ```
 
-This scaffolds the full directory structure, initializes a git repo, and sets up `.gitignore` to exclude `scoring/` and `.autoanything/`. Then:
+This scaffolds the full directory structure, initializes a git repo, and sets up `.gitignore` to exclude `scoring/` and `.derby/`. Then:
 
 1. **Edit `problem.yaml`** — describe the problem.
 2. **Edit files in `state/`** — set up the initial mutable state. You can rename, add, or remove files here; the scoring function decides what to read.
 3. **Edit `scoring/score.py`** — implement your `score()` function. It must return a dict with at least the primary metric key (default: `"score"`).
-4. **Run `maxx validate`** — check everything is wired up.
-5. **Run `maxx score`** — run scoring once as a sanity check.
+4. **Run `derby validate`** — check everything is wired up.
+5. **Run `derby score`** — run scoring once as a sanity check.
 
 A minimal `problem.yaml`:
 
@@ -282,7 +282,7 @@ For a full walkthrough with a complete runnable example, see [docs/create-proble
 
 ### Minimum time to optimization
 
-The hardest part of any optimization problem isn't the search — it's defining what "better" means. AutoAnything is designed so the time between "I have a problem" and "agents are working on it" is as short as possible. `init` scaffolds the structure. You fill in three things: what the problem is, what the starting state looks like, and how to score it. Then `run` handles everything else — scoring, keeping improvements, updating the leaderboard, looping. No infrastructure to set up, no agents to configure, no evaluation pipeline to build.
+The hardest part of any optimization problem isn't the search — it's defining what "better" means. Darwin Derby is designed so the time between "I have a problem" and "agents are working on it" is as short as possible. `init` scaffolds the structure. You fill in three things: what the problem is, what the starting state looks like, and how to score it. Then `run` handles everything else — scoring, keeping improvements, updating the leaderboard, looping. No infrastructure to set up, no agents to configure, no evaluation pipeline to build.
 
 The goal is that your time goes to the only part that requires human judgment: thinking carefully about the scoring function and what values it encodes. Once that's right, the system runs without oversight. Agents propose, the evaluator decides, and the score ratchets forward.
 
@@ -338,7 +338,7 @@ This is a feature, not a bug. It forces you to think hard about what "better" me
 | [Create a problem](docs/create-problem.md) | Step-by-step walkthrough with a runnable example |
 | [Scoring](docs/scoring.md) | Writing scoring functions, LLM-as-judge patterns |
 | [Agent protocol](docs/agent-protocol.md) | How agents participate in a problem |
-| [Design](docs/autoanything.md) | Philosophy and principles behind the framework |
+| [Design](docs/darwinderby.md) | Philosophy and principles behind the framework |
 
 ## License
 

@@ -1,6 +1,6 @@
 # How to Participate
 
-This is an AutoAnything challenge. Read `problem.yaml` for what you're optimizing.
+This is a Darwin Derby challenge. Read `problem.yaml` for what you're optimizing.
 
 ## Protocol
 

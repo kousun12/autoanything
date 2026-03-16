@@ -1,4 +1,4 @@
-"""Tests for autoanything.git — git operations.
+"""Tests for darwinderby.git — git operations.
 
 The git module wraps subprocess calls to git. These tests verify
 branch listing, filtering, and merge operations use configurable
@@ -10,7 +10,7 @@ import subprocess
 
 import pytest
 
-from autoanything.git import (
+from darwinderby.git import (
     git,
     get_proposal_branches,
     get_head_commit,

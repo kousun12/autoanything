@@ -5,7 +5,7 @@
 Scoring code (`scoring/score.py`) is the black-box metric that drives optimization. Agents must never see it. Today this is enforced two ways:
 
 1. **Gitignore**: `scoring/` is in `.gitignore`, so it's never committed to working branches.
-2. **Move-once hiding** (local loop only): During `maxx run`, `runner.py` moves `scoring/` to `.autoanything/_scoring/` once before entering the loop, and restores it when the loop ends. Scoring is loaded from the hidden location via sys.path injection.
+2. **Move-once hiding** (local loop only): During `derby run`, `runner.py` moves `scoring/` to `.derby/_scoring/` once before entering the loop, and restores it when the loop ends. Scoring is loaded from the hidden location via sys.path injection.
 
 Scoring is completely unversioned — it's an untracked file on disk with no history. It can't be diffed, distributed, or experimented with.
 
@@ -33,18 +33,18 @@ Scoring code lives on a dedicated orphan branch (default: `scoring`). Working br
 
 ### Runtime mechanism
 
-Scoring is extracted from the branch once (at evaluator startup or loop start) into `.autoanything/_scoring/` and loaded from there via the existing `scoring_dir` parameter on `run_score()`. No per-iteration git operations or filesystem mutations.
+Scoring is extracted from the branch once (at evaluator startup or loop start) into `.derby/_scoring/` and loaded from there via the existing `scoring_dir` parameter on `run_score()`. No per-iteration git operations or filesystem mutations.
 
 ```python
 # One-time extraction (at startup)
 git("checkout", scoring_branch, "--", "scoring/", cwd=problem_dir)
 shutil.move(os.path.join(problem_dir, "scoring"),
-            os.path.join(problem_dir, ".autoanything", "_scoring"))
+            os.path.join(problem_dir, ".derby", "_scoring"))
 git("reset", "HEAD", "--", "scoring/", cwd=problem_dir, check=False)
 
 # Per-iteration scoring (already works — no changes needed)
 run_score(problem_dir, score_name=score_name, timeout=timeout,
-          scoring_dir=os.path.join(problem_dir, ".autoanything", "_scoring"))
+          scoring_dir=os.path.join(problem_dir, ".derby", "_scoring"))
 ```
 
 The `run_score` sys.path injection (already implemented) handles the import resolution. No `scoring_context` context manager is needed — the extraction happens once, the hidden directory persists for the session.
@@ -63,13 +63,13 @@ score:
 CLI commands gain `--scoring-branch` to override:
 
 ```bash
-maxx run -a "./agent.sh" --scoring-branch scoring/v2
-maxx evaluate --scoring-branch scoring/experimental
-maxx serve --scoring-branch scoring/strict
-maxx score --scoring-branch scoring    # default
+derby run -a "./agent.sh" --scoring-branch scoring/v2
+derby evaluate --scoring-branch scoring/experimental
+derby serve --scoring-branch scoring/strict
+derby score --scoring-branch scoring    # default
 ```
 
-### `maxx init` changes
+### `derby init` changes
 
 Init creates the scoring branch as an orphan branch with the template `score.py`:
 
@@ -102,8 +102,8 @@ This means existing problems with `scoring/` on disk keep working with zero chan
 ### Phase 1: Config + branch extraction utility
 
 **Files:**
-- `src/autoanything/problem.py` — add optional `branch` field to `ScoreConfig` (default: `None`)
-- `src/autoanything/scoring.py` — add `extract_scoring_from_branch(problem_dir, branch)` that checks out scoring from the branch into `.autoanything/_scoring/` and returns the path. Add `resolve_scoring(problem_dir, scoring_branch_override, config)` that implements the priority logic above.
+- `src/darwinderby/problem.py` — add optional `branch` field to `ScoreConfig` (default: `None`)
+- `src/darwinderby/scoring.py` — add `extract_scoring_from_branch(problem_dir, branch)` that checks out scoring from the branch into `.derby/_scoring/` and returns the path. Add `resolve_scoring(problem_dir, scoring_branch_override, config)` that implements the priority logic above.
 
 **`ScoreConfig` change:**
 - Add `branch: str | None = None` field
@@ -111,9 +111,9 @@ This means existing problems with `scoring/` on disk keep working with zero chan
 
 **`extract_scoring_from_branch` behavior:**
 - Checkout `scoring/` from the branch into the working tree
-- Move it to `.autoanything/_scoring/`
+- Move it to `.derby/_scoring/`
 - `git reset HEAD -- scoring/` to unstage
-- Return the path to `.autoanything/_scoring/`
+- Return the path to `.derby/_scoring/`
 
 **`resolve_scoring` behavior:**
 - Check override → config → on-disk → convention branch
@@ -126,20 +126,20 @@ This means existing problems with `scoring/` on disk keep working with zero chan
 ### Phase 2: Wire into runner.py, evaluator.py, server.py
 
 **Files:**
-- `src/autoanything/runner.py` — use `resolve_scoring()` at the top of `run_local()` to determine where scoring lives. If scoring comes from a branch, extract once; the existing move-once logic handles the rest.
-- `src/autoanything/evaluator.py` — use `resolve_scoring()` in `establish_baseline()` and `evaluate_proposal()`, pass `scoring_dir` to `run_score()`
-- `src/autoanything/server.py` — use `resolve_scoring()` in `create_app()`, pass `scoring_dir` through to `_evaluate_one_pr()` and its `run_score()` calls
+- `src/darwinderby/runner.py` — use `resolve_scoring()` at the top of `run_local()` to determine where scoring lives. If scoring comes from a branch, extract once; the existing move-once logic handles the rest.
+- `src/darwinderby/evaluator.py` — use `resolve_scoring()` in `establish_baseline()` and `evaluate_proposal()`, pass `scoring_dir` to `run_score()`
+- `src/darwinderby/server.py` — use `resolve_scoring()` in `create_app()`, pass `scoring_dir` through to `_evaluate_one_pr()` and its `run_score()` calls
 
 **Key insight:** The `run_score(scoring_dir=...)` parameter already works (implemented). This phase is just about resolving _where_ scoring lives (branch vs disk) and passing that path through.
 
 **Tests:**
-- `tests/test_evaluator.py` — mock targets stay the same (`autoanything.evaluator.run_score`). These tests mock `run_score` so they don't exercise the branch extraction — that's tested in Phase 1.
+- `tests/test_evaluator.py` — mock targets stay the same (`darwinderby.evaluator.run_score`). These tests mock `run_score` so they don't exercise the branch extraction — that's tested in Phase 1.
 - `tests/test_server.py` — same; server tests mock at a higher level
 
 ### Phase 3: CLI and init changes
 
 **Files:**
-- `src/autoanything/cli.py` — add `--scoring-branch` option to `run`, `evaluate`, `serve`, `score`, `validate`; update `init` to create scoring branch
+- `src/darwinderby/cli.py` — add `--scoring-branch` option to `run`, `evaluate`, `serve`, `score`, `validate`; update `init` to create scoring branch
 
 **CLI option (shared):**
 ```python
@@ -176,15 +176,15 @@ Added to: `run`, `evaluate`, `serve`, `score`, `validate`.
   - `TestValidate`: update `test_missing_score_py_fails` to account for branch-based scoring. Add test for branch-based validation.
   - `TestScore`: update to work with scoring on a branch (may need a git repo fixture)
 - `tests/test_integration.py`:
-  - `TestInitToScore`: update — after init, scoring is on a branch. The test should checkout scoring, write the real `score()`, commit, checkout main, then run `maxx score`.
+  - `TestInitToScore`: update — after init, scoring is on a branch. The test should checkout scoring, write the real `score()`, commit, checkout main, then run `derby score`.
 - `tests/conftest.py`:
   - `problem_dir` fixture: add a `scoring` branch with `scoring/score.py` in addition to (or instead of) the on-disk scoring directory. For backwards-compat tests, keep the on-disk variant as a separate fixture.
 
 ### Phase 4: Template and doc updates
 
 **Files:**
-- `src/autoanything/templates/gitignore` — keep `scoring/` (now serves as a safety net rather than the primary mechanism)
-- `src/autoanything/templates/problem.yaml` — add commented-out `branch: scoring` under `score:`
+- `src/darwinderby/templates/gitignore` — keep `scoring/` (now serves as a safety net rather than the primary mechanism)
+- `src/darwinderby/templates/problem.yaml` — add commented-out `branch: scoring` under `score:`
 - `CLAUDE.md` — update "How Problems Work" section, evaluator design notes, and any references to scoring being gitignored
 - `SCORE_DOCS.md` — update the "basics" section to explain branch-based scoring, add section on scoring experimentation via branches
 - `agent_instructions.md` — no changes needed (agents already can't see scoring)
@@ -209,7 +209,7 @@ score:
 scoring/
 
 # Evaluator state (history database, logs)
-.autoanything/
+.derby/
 ```
 
 **CLAUDE.md updates:**
@@ -240,7 +240,7 @@ git commit -m "Move scoring to dedicated branch"
 git checkout main
 
 # Verify
-maxx score   # should auto-detect the scoring branch
+derby score   # should auto-detect the scoring branch
 ```
 
 No changes to `problem.yaml` are required — the default branch name `scoring` is resolved by convention.
@@ -249,6 +249,6 @@ No changes to `problem.yaml` are required — the default branch name `scoring` 
 
 1. **Orphan branch vs regular branch?** Orphan keeps the scoring branch's history completely separate from main's history. Regular branch means scoring shares the initial commit with main. Orphan is cleaner but slightly more ceremony. Recommendation: orphan.
 
-2. **Should `maxx edit-scoring` be a convenience command?** Switching to the scoring branch, editing, committing, and switching back is more ceremony than editing a local file. A helper command could smooth this. Could be a fast follow-up, not required for the initial implementation.
+2. **Should `derby edit-scoring` be a convenience command?** Switching to the scoring branch, editing, committing, and switching back is more ceremony than editing a local file. A helper command could smooth this. Could be a fast follow-up, not required for the initial implementation.
 
 3. **Remote scoring branches.** For problems hosted on GitHub, the scoring branch would be pushed. This means anyone with repo access can see the scoring code (on that branch). This is fine for most use cases but worth noting — if scoring must be truly secret, the branch can be kept local or in a separate private repo. Not a blocker.
