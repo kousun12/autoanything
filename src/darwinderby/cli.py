@@ -378,7 +378,8 @@ def run(problem_dir, agent, iterations, max_crashes, db):
     )
 
 
-_CLAUDE_PROMPT = """
+def _CLAUDE_PROMPT(problem_dir: str) -> str:
+    return f"""
 You are optimizing a problem.
 Read problem.yaml, context/, and agent_instructions.md to understand the task.
 Check leaderboard.md and history.md if they exist for context on past attempts and how they performed.
@@ -563,7 +564,7 @@ if lines:
         if iterations is None:
             iterations = _DEMO_DEFAULTS[problem]
     elif use_claude:
-        agent_command = f"claude -p '{_CLAUDE_PROMPT}' --dangerously-skip-permissions"
+        agent_command = f"claude -p '{_CLAUDE_PROMPT(problem_dir=target_dir)}' --dangerously-skip-permissions"
         agent_label = "claude"
         if iterations is None:
             iterations = _CLAUDE_DEFAULTS[problem]
@@ -577,6 +578,7 @@ if lines:
     click.echo(f"Running {iterations} iterations with {agent_label}...\n")
 
     # Run the optimization loop
+    config = None
     try:
         config = load_problem(target_dir)
     except (FileNotFoundError, ValidationError) as e:
