@@ -13,6 +13,8 @@ The name comes from a track on Vulpeck's excellent and exhuberant *[Hill Climber
 | ![GPT training optimization](images/progress.png) | ![Rastrigin function minimization](images/test_progress_rastrigin.png) |
 | **Traveling Salesman (20 cities)** | **Rectangle Packing (12 rects)** |
 | ![TSP route optimization](images/test_progress_tsp.png) | ![Rectangle packing optimization](images/test_progress_packing.png) |
+| **Improve my Essay** | **Make Website Better** |
+| ![Essay quality optimization](images/essay_progress.png) | ![Website optimization](images/website_progress.png) |
 
 *Agents propose changes (grey dots), the evaluator keeps only improvements (green dots), and the best score ratchets monotonically in one direction.*
 
