@@ -10,7 +10,7 @@ import subprocess
 import pytest
 from click.testing import CliRunner
 
-from autoanything.cli import main as cli
+from darwinderby.cli import main as cli
 
 
 @pytest.fixture
@@ -36,7 +36,7 @@ class TestInitToScore:
         assert result.exit_code == 0
 
     def test_init_then_score(self, runner, tmp_path):
-        """init + add real scoring -> maxx score works."""
+        """init + add real scoring -> derby score works."""
         runner.invoke(cli, [
             "init", "test-prob",
             "--dir", str(tmp_path),
@@ -60,7 +60,7 @@ class TestExistingProblemStructure:
     @pytest.mark.parametrize("problem", ["rastrigin", "tsp", "packing"])
     def test_load_existing_problem_yaml(self, problem):
         """Existing problem.yaml files should parse with load_problem."""
-        from autoanything.problem import load_problem
+        from darwinderby.problem import load_problem
 
         problem_dir = os.path.join(
             os.path.dirname(os.path.dirname(__file__)),
@@ -80,7 +80,7 @@ class TestPackageInstallable:
     def test_cli_help(self, runner):
         result = runner.invoke(cli, ["--help"])
         assert result.exit_code == 0
-        assert "autoanything" in result.output.lower() or "usage" in result.output.lower()
+        assert "darwin derby" in result.output.lower() or "usage" in result.output.lower()
 
     def test_cli_commands_listed(self, runner):
         result = runner.invoke(cli, ["--help"])

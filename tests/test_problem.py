@@ -1,4 +1,4 @@
-"""Tests for autoanything.problem — YAML config loading and validation.
+"""Tests for darwinderby.problem — YAML config loading and validation.
 
 The problem module is the single source of truth for configuration.
 State files are discovered from the state/ directory by convention.
@@ -9,7 +9,7 @@ import warnings
 import pytest
 import textwrap
 
-from autoanything.problem import load_problem, ProblemConfig, ValidationError, get_state_files
+from darwinderby.problem import load_problem, ProblemConfig, ValidationError, get_state_files
 
 
 class TestLoadMinimal:

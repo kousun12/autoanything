@@ -10,18 +10,18 @@ from importlib import resources
 
 import click
 
-from autoanything.problem import load_problem, ValidationError
+from darwinderby.problem import load_problem, ValidationError
 
 
 # ---------------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------------
 
-_TEMPLATES_PKG = "autoanything.templates"
+_TEMPLATES_PKG = "darwinderby.templates"
 
 
 def _load_template(filename: str) -> str:
-    """Load a template file from the autoanything.templates package."""
+    """Load a template file from the darwinderby.templates package."""
     return resources.files(_TEMPLATES_PKG).joinpath(filename).read_text()
 
 
@@ -37,7 +37,7 @@ def _resolve_db_path(problem_dir: str, db: str | None) -> str:
     """Resolve the database path from --db flag or default location."""
     if db:
         return db
-    new_path = os.path.join(problem_dir, ".autoanything", "history.db")
+    new_path = os.path.join(problem_dir, ".derby", "history.db")
     os.makedirs(os.path.dirname(new_path), exist_ok=True)
     return new_path
 
@@ -49,7 +49,7 @@ def _resolve_db_path(problem_dir: str, db: str | None) -> str:
 
 @click.group()
 def main():
-    """AutoAnything — autonomous optimization via AI agents."""
+    """Darwin Derby — agents compete, the best solution survives."""
 
 
 @main.command()
@@ -70,7 +70,7 @@ def init(name, parent_dir, direction):
     os.makedirs(os.path.join(problem_dir, "state"))
     os.makedirs(os.path.join(problem_dir, "context"))
     os.makedirs(os.path.join(problem_dir, "scoring"))
-    os.makedirs(os.path.join(problem_dir, ".autoanything"))
+    os.makedirs(os.path.join(problem_dir, ".derby"))
 
     # Write files from templates
     with open(os.path.join(problem_dir, "problem.yaml"), "w") as f:
@@ -101,8 +101,8 @@ def init(name, parent_dir, direction):
     click.echo("  # Edit problem.yaml — describe the problem")
     click.echo("  # Edit files in state/ — set up the initial mutable state")
     click.echo("  # Edit scoring/score.py — implement your score() function")
-    click.echo("  maxx validate    # check everything is wired up")
-    click.echo("  maxx score       # run scoring once as a sanity check")
+    click.echo("  derby validate    # check everything is wired up")
+    click.echo("  derby score       # run scoring once as a sanity check")
 
 
 @main.command()
@@ -170,7 +170,7 @@ def validate(problem_dir):
 @click.option("--dir", "problem_dir", default=".", help="Problem directory.")
 def score(problem_dir):
     """Run scoring once and print the result."""
-    from autoanything.scoring import run_score as _run_score
+    from darwinderby.scoring import run_score as _run_score
 
     try:
         config = load_problem(problem_dir)
@@ -204,7 +204,7 @@ def score(problem_dir):
 @click.option("--db", default=None, help="Path to history database.")
 def history(problem_dir, db):
     """Print evaluation history."""
-    from autoanything.history import init_db as _init_db
+    from darwinderby.history import init_db as _init_db
 
     db_path = _resolve_db_path(problem_dir, db)
     if not os.path.exists(db_path):
@@ -234,8 +234,8 @@ def history(problem_dir, db):
 @click.option("--db", default=None, help="Path to history database.")
 def leaderboard(problem_dir, db):
     """Regenerate leaderboard.md from history."""
-    from autoanything.history import init_db as _init_db
-    from autoanything.leaderboard import export_leaderboard as _export
+    from darwinderby.history import init_db as _init_db
+    from darwinderby.leaderboard import export_leaderboard as _export
 
     try:
         config = load_problem(problem_dir)
@@ -266,7 +266,7 @@ def leaderboard(problem_dir, db):
 @click.option("--score-label", default=None, help="Y-axis label (default: metric name or 'Score').")
 def plot(problem_dir, db, output, title, direction, score_label):
     """Generate a progress chart from evaluation history."""
-    from autoanything.plotting import generate_chart
+    from darwinderby.plotting import generate_chart
 
     db_path = _resolve_db_path(problem_dir, db)
     if not os.path.exists(db_path):
@@ -309,7 +309,7 @@ def plot(problem_dir, db, output, title, direction, score_label):
 @click.option("--db", default=None, help="Path to history database.")
 def evaluate(problem_dir, baseline_only, push, poll_interval, db):
     """Start the polling evaluator (watches for proposal branches)."""
-    from autoanything.evaluator import run_evaluator
+    from darwinderby.evaluator import run_evaluator
 
     try:
         config = load_problem(problem_dir)
@@ -349,13 +349,13 @@ def run(problem_dir, agent, iterations, max_crashes, db):
 
     Examples:
 
-        maxx run -a "./optimize.sh"
+        derby run -a "./optimize.sh"
 
-        maxx run -a "python my_agent.py" -n 50
+        derby run -a "python my_agent.py" -n 50
 
-        maxx run -a "claude -p 'improve the solution'" -n 10
+        derby run -a "claude -p 'improve the solution'" -n 10
     """
-    from autoanything.runner import run_local
+    from darwinderby.runner import run_local
 
     try:
         config = load_problem(problem_dir)
@@ -418,11 +418,11 @@ def try_problem(problem, target_dir, iterations, agent_override, use_claude):
 
     Examples:
 
-        maxx try rastrigin
+        derby try rastrigin
 
-        maxx try fib --claude
+        derby try fib --claude
 
-        maxx try tsp -a "python my_agent.py" -n 10
+        derby try tsp -a "python my_agent.py" -n 10
     """
     import shutil
     import platform
@@ -448,22 +448,22 @@ def try_problem(problem, target_dir, iterations, agent_override, use_claude):
 
     # Write .gitignore
     with open(os.path.join(target_dir, ".gitignore"), "w") as f:
-        f.write("scoring/\n.autoanything/\n__pycache__/\n*.pyc\n.DS_Store\n")
+        f.write("scoring/\n.derby/\n__pycache__/\n*.pyc\n.DS_Store\n")
 
     # Init git repo
     subprocess.run(["git", "init", "-b", "main"], cwd=target_dir,
                    capture_output=True, check=True)
     subprocess.run(["git", "add", "-A"], cwd=target_dir,
                    capture_output=True, check=True)
-    subprocess.run(["git", "config", "user.email", "autoanything@example.com"],
+    subprocess.run(["git", "config", "user.email", "derby@example.com"],
                    cwd=target_dir, capture_output=True, check=True)
-    subprocess.run(["git", "config", "user.name", "autoanything"],
+    subprocess.run(["git", "config", "user.name", "derby"],
                    cwd=target_dir, capture_output=True, check=True)
     subprocess.run(["git", "commit", "-m", "init"], cwd=target_dir,
                    capture_output=True, check=True)
 
     # Write demo agent script
-    agent_script = os.path.join(target_dir, ".autoanything", "agent.py")
+    agent_script = os.path.join(target_dir, ".derby", "agent.py")
     os.makedirs(os.path.dirname(agent_script), exist_ok=True)
 
     agents = {
@@ -478,7 +478,7 @@ except Exception:
     current = [0.0] * 10
 
 # Perturb each value with decreasing step size
-iteration = int(os.environ.get("AUTOANYTHING_ITERATION", "1"))
+iteration = int(os.environ.get("DERBY_ITERATION", "1"))
 step = max(0.5, 3.0 / (1 + iteration * 0.1))
 vals = [v + random.gauss(0, step) for v in current]
 vals = [max(-5.12, min(5.12, v)) for v in vals]
@@ -585,7 +585,7 @@ if lines:
 
     db_path = _resolve_db_path(target_dir, None)
 
-    from autoanything.runner import run_local
+    from darwinderby.runner import run_local
     run_local(
         problem_dir=target_dir,
         config=config,
@@ -595,8 +595,8 @@ if lines:
     )
 
     # Generate chart
-    from autoanything.plotting import generate_chart
-    chart_path = os.path.join(target_dir, ".autoanything", "progress.png")
+    from darwinderby.plotting import generate_chart
+    chart_path = os.path.join(target_dir, ".derby", "progress.png")
     try:
         generate_chart(
             db_path, chart_path,
@@ -632,14 +632,14 @@ def serve(problem_dir, port, host, push, db):
     """Start the webhook server."""
     import logging
 
-    from autoanything.history import init_db as _init_db, get_incumbent as _get_incumbent
-    from autoanything.server import create_app
+    from darwinderby.history import init_db as _init_db, get_incumbent as _get_incumbent
+    from darwinderby.server import create_app
 
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(name)s %(levelname)s %(message)s",
     )
-    slogger = logging.getLogger("autoanything.server")
+    slogger = logging.getLogger("darwinderby.server")
 
     webhook_secret = os.environ.get("WEBHOOK_SECRET")
     if not webhook_secret:
@@ -655,7 +655,7 @@ def serve(problem_dir, port, host, push, db):
     conn.close()
     if incumbent is None:
         click.echo(
-            "Error: No baseline found. Run 'maxx evaluate --baseline-only' first.",
+            "Error: No baseline found. Run 'derby evaluate --baseline-only' first.",
             err=True,
         )
         sys.exit(1)

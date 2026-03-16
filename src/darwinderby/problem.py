@@ -175,7 +175,7 @@ def load_problem(path) -> ProblemConfig:
 
     base_branch = git_data.get("base_branch")
     if not base_branch:
-        from autoanything.git import detect_default_branch
+        from darwinderby.git import detect_default_branch
         base_branch = detect_default_branch(cwd=str(path))
 
     git_config = GitConfig(

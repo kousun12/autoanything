@@ -1,6 +1,6 @@
 # How to Participate
 
-This is an AutoAnything challenge. You are optimizing a GPT training script for the lowest validation bits-per-byte (val_bpb). Read `problem.yaml` for the full problem definition.
+This is a Darwin Derby challenge. You are optimizing a GPT training script for the lowest validation bits-per-byte (val_bpb). Read `problem.yaml` for the full problem definition.
 
 ## Protocol
 

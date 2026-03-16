@@ -1,4 +1,4 @@
-"""Tests for autoanything.server — webhook server.
+"""Tests for darwinderby.server — webhook server.
 
 Uses FastAPI's TestClient so no actual HTTP server is started.
 """
@@ -9,7 +9,7 @@ import json
 
 import pytest
 
-from autoanything.server import create_app
+from darwinderby.server import create_app
 
 
 @pytest.fixture
@@ -51,8 +51,8 @@ class TestHealthEndpoint:
 
     def test_health_includes_incumbent(self, client, problem_dir):
         # Pre-populate incumbent
-        from autoanything.history import init_db, update_incumbent
-        db_path = str(problem_dir / ".autoanything" / "history.db")
+        from darwinderby.history import init_db, update_incumbent
+        db_path = str(problem_dir / ".derby" / "history.db")
         conn = init_db(db_path)
         update_incumbent(conn, "abc123", 42.5)
         conn.close()
@@ -164,14 +164,14 @@ class TestPRValidation:
     """PR file validation — only state/ files should be modified."""
 
     def test_validate_allowed_files(self):
-        from autoanything.server import validate_pr_files
+        from darwinderby.server import validate_pr_files
         ok, msg = validate_pr_files(
             modified=["state/solution.py"],
         )
         assert ok is True
 
     def test_reject_disallowed_files(self):
-        from autoanything.server import validate_pr_files
+        from darwinderby.server import validate_pr_files
         ok, msg = validate_pr_files(
             modified=["state/solution.py", "context/background.py"],
         )
@@ -179,7 +179,7 @@ class TestPRValidation:
         assert "context/background.py" in msg
 
     def test_new_state_files_allowed(self):
-        from autoanything.server import validate_pr_files
+        from darwinderby.server import validate_pr_files
         ok, msg = validate_pr_files(
             modified=["state/solution.py", "state/new_file.py"],
         )

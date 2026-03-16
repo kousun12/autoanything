@@ -105,7 +105,7 @@ def generate_chart(db_path, output_path, title=None, direction="minimize",
     n_total = len(rows)
     n_kept = sum(1 for r in rows if r[2] == "accepted")
     if title is None:
-        title = (f"AutoAnything Progress: {n_total} Experiments, "
+        title = (f"Darwin Derby Progress: {n_total} Experiments, "
                  f"{n_kept} Kept Improvement{'s' if n_kept != 1 else ''}")
     ax.set_title(title, fontsize=14)
 

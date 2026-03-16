@@ -1,4 +1,4 @@
-"""Shared fixtures for the autoanything test suite."""
+"""Shared fixtures for the darwinderby test suite."""
 
 import os
 import sqlite3
@@ -73,10 +73,10 @@ def problem_dir(tmp_path, full_problem_yaml):
     """))
 
     # .gitignore
-    (tmp_path / ".gitignore").write_text("scoring/\n.autoanything/\n")
+    (tmp_path / ".gitignore").write_text("scoring/\n.derby/\n")
 
-    # .autoanything/
-    (tmp_path / ".autoanything").mkdir()
+    # .derby/
+    (tmp_path / ".derby").mkdir()
 
     return tmp_path
 
@@ -84,9 +84,9 @@ def problem_dir(tmp_path, full_problem_yaml):
 @pytest.fixture
 def history_db(tmp_path):
     """An initialized history database (in-memory style, but on disk for subprocess compat)."""
-    from autoanything.history import init_db
+    from darwinderby.history import init_db
 
-    db_path = tmp_path / ".autoanything" / "history.db"
+    db_path = tmp_path / ".derby" / "history.db"
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = init_db(str(db_path))
     yield conn, str(db_path)

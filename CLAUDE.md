@@ -4,16 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-AutoAnything — a framework for autonomous optimization via AI agents. Agents propose changes, an evaluator scores them against a black-box metric, and only improvements are kept. Any optimization problem with a scoring function can be plugged in.
+Darwin Derby — a framework for autonomous optimization via AI agents. Agents propose changes, an evaluator scores them against a black-box metric, and only improvements are kept. Any optimization problem with a scoring function can be plugged in.
 
 ## Repository Structure
 
 ```
-autoanything/
-├── src/autoanything/        # Installable package (the framework)
+darwin-derby/
+├── src/darwinderby/        # Installable package (the framework)
 │   ├── cli.py                # CLI entry point (click)
 │   ├── evaluator.py          # Polling evaluation loop
-│   ├── runner.py             # Local optimization loop (maxx run)
+│   ├── runner.py             # Local optimization loop (derby run)
 │   ├── server.py             # Webhook server (FastAPI)
 │   ├── scoring.py            # Run scoring/score.py, parse JSON output
 │   ├── problem.py            # Parse + validate problem.yaml (PyYAML)
@@ -36,30 +36,30 @@ autoanything/
 uv sync                                    # install dependencies
 
 # Try an example problem (quick demo with built-in agent)
-maxx try rastrigin                 # set up + run demo agent + plot
-maxx try fib --claude              # use Claude as the agent
-maxx try tsp -a "./my_agent.sh"    # use a custom agent
+derby try rastrigin                 # set up + run demo agent + plot
+derby try fib --claude              # use Claude as the agent
+derby try tsp -a "./my_agent.sh"    # use a custom agent
 
 # Local optimization loop (run from a problem directory)
-maxx run -a "./my_agent.sh"        # run agent in a loop, score locally
-maxx run -a "python opt.py" -n 50  # limit to 50 iterations
-maxx run -a "claude -p 'improve'" -n 10  # use any command as the agent
+derby run -a "./my_agent.sh"        # run agent in a loop, score locally
+derby run -a "python opt.py" -n 50  # limit to 50 iterations
+derby run -a "claude -p 'improve'" -n 10  # use any command as the agent
 
 # Remote evaluator (run from a problem directory, not by agents)
-maxx evaluate                      # start the serial evaluation loop
-maxx evaluate --baseline-only      # just establish the baseline score
-maxx evaluate --push               # push leaderboard updates to origin
-maxx serve                         # start the webhook-driven web evaluator
-maxx serve --push                  # web evaluator with auto-push
+derby evaluate                      # start the serial evaluation loop
+derby evaluate --baseline-only      # just establish the baseline score
+derby evaluate --push               # push leaderboard updates to origin
+derby serve                         # start the webhook-driven web evaluator
+derby serve --push                  # web evaluator with auto-push
 
 # GPT problem only (after activating gpt)
 uv run context/prepare.py                  # one-time: download data + train tokenizer
 uv run state/train.py                      # run a single training experiment (~5 min)
 
 # Progress charts
-maxx plot                         # chart from .autoanything/history.db
-maxx plot --db path/to/history.db  # chart from a specific database
-maxx plot -o chart.png            # save to a specific path
+derby plot                         # chart from .derby/history.db
+derby plot --db path/to/history.db  # chart from a specific database
+derby plot -o chart.png            # save to a specific path
 
 # Runnable examples with test harness: https://github.com/kousun12/derby-examples
 ```
@@ -76,7 +76,7 @@ my-problem/
 ├── context/               # Read-only context (optional)
 ├── scoring/
 │   └── score.py           # GITIGNORED — implement score() → dict
-└── .autoanything/         # GITIGNORED — evaluator state (history.db)
+└── .derby/                # GITIGNORED — evaluator state (history.db)
 ```
 
 The evaluator is problem-agnostic — it reads the score metric name from `problem.yaml` and runs `scoring/score.py`. The `score()` function returns a dict with the metric key. Reference examples live in `examples/` in this repo; runnable problem repos live at [derby-examples](https://github.com/kousun12/derby-examples).
@@ -91,11 +91,11 @@ The evaluator is problem-agnostic — it reads the score metric name from `probl
 
 ## Evaluator Design
 
-- **Three modes**: local loop (`maxx run`), polling (`maxx evaluate`), or webhook (`maxx serve`)
-- **Local loop**: runs a user-provided agent command repeatedly — the framework handles branching, scoring, merging improvements, and leaderboard. Scoring directory is hidden from the agent during execution. Agent gets env vars: `AUTOANYTHING_ITERATION`, `AUTOANYTHING_SCORE`, `AUTOANYTHING_DIRECTION`, `AUTOANYTHING_METRIC`, `AUTOANYTHING_PROBLEM`.
+- **Three modes**: local loop (`derby run`), polling (`derby evaluate`), or webhook (`derby serve`)
+- **Local loop**: runs a user-provided agent command repeatedly — the framework handles branching, scoring, merging improvements, and leaderboard. Scoring directory is hidden from the agent during execution. Agent gets env vars: `DERBY_ITERATION`, `DERBY_SCORE`, `DERBY_DIRECTION`, `DERBY_METRIC`, `DERBY_PROBLEM`.
 - **Serial evaluation**: one proposal at a time, no race conditions
 - **Blind scoring**: agents never see `scoring/` (gitignored; physically hidden during `run`)
-- **SQLite history**: all evaluations recorded in `.autoanything/history.db`
+- **SQLite history**: all evaluations recorded in `.derby/history.db`
 - **Auto-leaderboard**: `leaderboard.md` (best scores) and `history.md` (recent attempts) updated after each evaluation
 
 ## Available Problems

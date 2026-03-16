@@ -11,18 +11,18 @@ import shutil
 import subprocess
 import sys
 
-from autoanything.git import git, get_head_commit, get_commit_message
-from autoanything.history import (
+from darwinderby.git import git, get_head_commit, get_commit_message
+from darwinderby.history import (
     init_db,
     get_incumbent,
     update_incumbent,
     record_evaluation,
 )
-from autoanything.leaderboard import export_leaderboard, export_history
-from autoanything.scoring import run_score, is_better
+from darwinderby.leaderboard import export_leaderboard, export_history
+from darwinderby.scoring import run_score, is_better
 
 
-_FRAMEWORK_PREFIXES = ("scoring/", ".autoanything/", ".git/")
+_FRAMEWORK_PREFIXES = ("scoring/", ".derby/", ".git/")
 _FRAMEWORK_NAMES = {".DS_Store", ".gitignore"}
 
 
@@ -49,7 +49,7 @@ def run_local(problem_dir, config, db_path, agent_command,
         max_iterations: Stop after this many iterations (None = unlimited).
         max_consecutive_crashes: Stop after this many consecutive crashes.
     """
-    from autoanything.evaluator import _resolve_base_branch
+    from darwinderby.evaluator import _resolve_base_branch
     base_branch = _resolve_base_branch(config, problem_dir)
     score_name = config.score.name
     timeout = config.score.timeout
@@ -59,7 +59,7 @@ def run_local(problem_dir, config, db_path, agent_command,
 
     # Recover scoring if left hidden from a previous interrupted run
     scoring_src = os.path.join(problem_dir, "scoring")
-    scoring_hidden = os.path.join(problem_dir, ".autoanything", "_scoring")
+    scoring_hidden = os.path.join(problem_dir, ".derby", "_scoring")
     if os.path.isdir(scoring_hidden) and not os.path.isdir(scoring_src):
         shutil.move(scoring_hidden, scoring_src)
         print("Recovered scoring directory from previous interrupted run.")
@@ -145,11 +145,11 @@ def run_local(problem_dir, config, db_path, agent_command,
 
             agent_env = {
                 **os.environ,
-                "AUTOANYTHING_ITERATION": str(iteration),
-                "AUTOANYTHING_SCORE": str(incumbent["score"]),
-                "AUTOANYTHING_DIRECTION": direction,
-                "AUTOANYTHING_METRIC": score_name,
-                "AUTOANYTHING_PROBLEM": config.name,
+                "DERBY_ITERATION": str(iteration),
+                "DERBY_SCORE": str(incumbent["score"]),
+                "DERBY_DIRECTION": direction,
+                "DERBY_METRIC": score_name,
+                "DERBY_PROBLEM": config.name,
             }
 
             print(f"Running agent...")

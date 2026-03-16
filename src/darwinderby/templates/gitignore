@@ -2,7 +2,7 @@
 scoring/
 
 # Evaluator state (history database, logs)
-.autoanything/
+.derby/
 
 # Python bytecode cache
 __pycache__/

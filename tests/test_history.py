@@ -1,4 +1,4 @@
-"""Tests for autoanything.history — SQLite evaluation history.
+"""Tests for darwinderby.history — SQLite evaluation history.
 
 The history module manages the evaluations and incumbent tables.
 All SQLite operations are isolated here — no git, no scoring knowledge.
@@ -6,7 +6,7 @@ All SQLite operations are isolated here — no git, no scoring knowledge.
 
 import pytest
 
-from autoanything.history import (
+from darwinderby.history import (
     init_db,
     record_evaluation,
     get_incumbent,

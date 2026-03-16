@@ -1,6 +1,6 @@
 # How to Participate
 
-This is an AutoAnything challenge. You are minimizing the **Rastrigin function** in 10 dimensions. Read `problem.yaml` for the full problem definition.
+This is a Darwin Derby challenge. You are minimizing the **Rastrigin function** in 10 dimensions. Read `problem.yaml` for the full problem definition.
 
 ## Protocol
 
