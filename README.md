@@ -16,18 +16,20 @@ The insight wasn't the ML part. It was the loop: propose a change, score it agai
 
 ## Install
 
-> **Note:** The repository and Python package are called `autoanything`. The CLI command it installs is `maxx`.
+> **Note:** The Python package is called `autoanything`. The CLI command it installs is `maxx`.
+
+From PyPI:
 
 ```bash
-uv tool install autoanything
+uv tool install autoanything[llm]
 ```
 
-For development (editable install):
+From source:
 
 ```bash
 git clone https://github.com/kousun12/autoanything
 cd autoanything
-uv sync
+uv tool install -e ".[llm]"
 ```
 
 ## Quick start
