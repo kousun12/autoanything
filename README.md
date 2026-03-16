@@ -14,8 +14,6 @@ This project started from Andrej Karpathy's [autoresearch](https://github.com/ka
 
 *Agents propose changes (grey dots), the evaluator keeps only improvements (green dots), and the best score ratchets monotonically in one direction.*
 
-![ralph-science](images/ralph-science.png)
-
 ## Install
 
 > **Note:** The Python package is called `darwinderby`. The CLI command it installs is `derby`.
@@ -157,6 +155,8 @@ derby plot -o chart.png            # save to a specific path
 ```
 
 ## Running agents
+
+![ralph-science](images/ralph-science.png)
 
 An agent is any command that reads the problem and modifies files in `state/`. Point it at the problem directory and let `derby run` handle the rest:
 
