@@ -1,8 +1,8 @@
-# Darwin Derby
+# Welcome to the Darwin Derby
 
-This project started from Andrej Karpathy's [autoresearch](https://github.com/karpathy/autoresearch) — a single AI agent in a loop, optimizing a GPT training script against validation bits-per-byte on one GPU. The agent would modify `train.py`, run training for five minutes, check the score, and keep the change if it improved. Simple evolutionary search powered by an LLM instead of random mutations.
+This project started from Andrej Karpathy's [autoresearch](https://github.com/karpathy/autoresearch) — a single AI agent in a loop, optimizing a GPT training script against validation bits-per-byte on one GPU. The agent would modify `train.py`, run training, check the score, and keep the change if it improved. A kind of "intelligent" evolutionary search.
 
-![ralph-science](images/ralph-science.png)
+![darwin-derby](images/darwin-derby.png)
 
 **Darwin Derby** generalizes that loop. The mutable state can be any set of files. The scoring function can be any program that outputs a number. And agents can be anything that can update files — Claude Code, Codex, Cursor, a human with vim, a shell script. You define the scoring function and a direction. Darwin Derby automaxxes your black-box score while you sleep.
 
@@ -12,7 +12,9 @@ This project started from Andrej Karpathy's [autoresearch](https://github.com/ka
 | **Traveling Salesman (20 cities)** | **Rectangle Packing (12 rects)** |
 | ![TSP route optimization](images/test_progress_tsp.png) | ![Rectangle packing optimization](images/test_progress_packing.png) |
 
-*Each chart shows the same pattern: agents propose changes (grey dots), the evaluator keeps only improvements (green dots), and the best score ratchets monotonically in one direction.*
+*Agents propose changes (grey dots), the evaluator keeps only improvements (green dots), and the best score ratchets monotonically in one direction.*
+
+![ralph-science](images/ralph-science.png)
 
 ## Install
 
