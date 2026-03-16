@@ -2,6 +2,8 @@
 
 This project started from Andrej Karpathy's [autoresearch](https://github.com/karpathy/autoresearch) — a single AI agent in a loop, optimizing a GPT training script against validation bits-per-byte on one GPU. The agent would modify `train.py`, run training for five minutes, check the score, and keep the change if it improved. Simple evolutionary search powered by an LLM instead of random mutations.
 
+![ralph-science](images/ralph-science.png)
+
 **AutoAnything** generalizes that loop. The mutable state can be any set of files. The scoring function can be any program that outputs a number. And agents can be anything that can update files — Claude Code, Codex, Cursor, a human with vim, a shell script. You define the scoring function and a direction. AutoAnything automaxxes your black-box score while you sleep.
 
 | GPT Training (val BPB) | Rastrigin Function (10-D) |
